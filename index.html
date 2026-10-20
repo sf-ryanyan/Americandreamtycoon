@@ -1,0 +1,1229 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="American Dream Tycoon 美国梦大亨 — a cartoon board game where you buy US states, build hotels and collect rent. 2–3 players, AI opponents, Chinese/English.">
+<meta property="og:title" content="American Dream Tycoon 美国梦大亨">
+<meta property="og:description" content="Buy US states, build hotels, collect rent. Play with friends or AI.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='10' y='10' width='80' height='80' rx='20' fill='%23ffc93c' stroke='%232b2140' stroke-width='8'/%3E%3Ctext x='50' y='70' text-anchor='middle' font-family='Arial Black' font-size='54' fill='%23e23d5c'%3E7%3C/text%3E%3C/svg%3E">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>American Dream Tycoon</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Fredoka:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: board fills the left of the screen; one right-hand column holds logo, tools, players and log (stacks under the board on narrow screens). Palette A "Sunset Coast": deep teal page, cream board, turquoise sea map. Single committed look. */
+:root{
+  color-scheme: light;
+  --bg1:#145466; --bg2:#0c2a3b; --ocean:#a3ddd5; --ocean-2:#7fc6c2; --ocean-ink:#2c7b82; --land:#fff3d8; --land-off:#dde4c4; --board:#fff4da;
+  --ink:#2b2140; --paper:#fffdf6; --cream:#fff3d6; --sand:#eadfbd; --sand-2:#d9c896;
+  --sun:#ffc93c; --sun-2:#f2a516; --good:#22b866; --bad:#ff5a5f; --muted:#6c6582;
+  --g1:#9b6b43; --g2:#5fc0f0; --g3:#d6589f; --g4:#f39a2b; --g5:#e84545; --g6:#f2cd30; --g7:#3dae5c; --g8:#2e5aac;
+  --f-display:"Lilita One","Arial Rounded MT Bold","Arial Black",sans-serif;
+  --f-body:"Fredoka","Nunito","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background-color:var(--bg2);background-image:radial-gradient(ellipse 70% 60% at 25% 0%,rgba(40,140,150,.45),transparent 65%),radial-gradient(ellipse 60% 50% at 100% 100%,rgba(10,60,90,.6),transparent 60%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='44'%3E%3Cpath d='M8 26 Q19 16 30 26 T52 26' fill='none' stroke='%23ffffff' stroke-opacity='.05' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");background-attachment:fixed;color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.4;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+
+/* ---------- cartoon primitives ---------- */
+.cbtn{border:3px solid var(--ink);background:#fff;border-radius:14px;padding:8px 16px;font-weight:700;font-size:16px;box-shadow:0 4px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+.cbtn:hover:not(:disabled){background:#f6f3ff}
+.cbtn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.cbtn.pri{background:var(--sun)}
+.cbtn.pri:hover:not(:disabled){background:#ffd65c}
+.cbtn.go{background:#7be07b}
+.cbtn:disabled{opacity:.5;cursor:default}
+.ib{min-width:40px;height:40px;border:3px solid var(--ink);border-radius:12px;background:#fff;box-shadow:0 3px 0 var(--ink);font-weight:700;font-size:15px;padding:0 10px}
+.ib:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border:2.5px solid var(--ink);border-radius:999px;background:#fff;font-weight:700;font-size:13px}
+.chip.hot{background:#ffe1e1}.chip.gold{background:var(--sun)}
+
+/* ---------- layout ---------- */
+.stage{height:100%}
+.arena{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;height:100%;min-height:620px;padding-block:14px;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
+.boardWrap{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.side{min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px}
+.sideTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.logo{font-family:var(--f-display);line-height:.92;color:var(--sun);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:0 3px 0 var(--ink);font-size:21px;letter-spacing:.02em}
+.logo span{display:block;font-size:12px;color:#d9f2ef;-webkit-text-stroke:0;text-shadow:none;font-family:var(--f-body);font-weight:700;letter-spacing:.24em;margin-top:4px}
+.roundBox{display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.roundBox .rd{font-family:var(--f-display);font-size:16px;background:var(--paper);border:3px solid var(--ink);border-radius:999px;padding:3px 12px;box-shadow:0 3px 0 var(--ink);white-space:nowrap}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.tools .ib{flex:1 1 auto;white-space:nowrap}
+.players{display:flex;flex-direction:column;gap:12px}
+@media (max-width:1000px){
+  .arena{grid-template-columns:minmax(0,1fr);height:auto;min-height:0}
+  .players{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+}
+
+/* ---------- board ---------- */
+.board{position:relative;display:grid;grid-template-columns:1.7fr repeat(10,1fr) 1.7fr;grid-template-rows:1.7fr repeat(8,1fr) 1.7fr;gap:4px;aspect-ratio:1.32;width:min(100%,calc((100dvh - 28px) * 1.32));padding:8px;background:var(--board);border:4px solid var(--ink);border-radius:26px;box-shadow:0 10px 0 #06202e,0 30px 60px rgba(0,0,0,.4)}
+@media (max-width:1000px){.board{width:100%}}
+.tile{position:relative;container-type:size;background:var(--paper);border:2.5px solid var(--ink);border-radius:9px;overflow:hidden;cursor:pointer;transition:background .2s}
+.tile:hover{background:#fffbe8}
+.band{position:absolute;background:var(--gc);border-color:var(--ink);border-style:solid;border-width:0}
+.side-b .band{left:0;right:0;top:0;height:30%;border-bottom-width:2.5px}
+.side-t .band{left:0;right:0;bottom:0;height:30%;border-top-width:2.5px}
+.side-l .band{top:0;bottom:0;right:0;width:30%;border-left-width:2.5px}
+.side-r .band{top:0;bottom:0;left:0;width:30%;border-right-width:2.5px}
+.band.built{background:color-mix(in srgb,var(--gc) 40%,#fff)}
+.band svg{position:absolute;left:3%;top:7%;width:72%;height:86%;overflow:visible;transform-origin:50% 100%}
+.side-l .band svg,.side-r .band svg{left:7%;top:3%;width:86%;height:70%}
+.state .ownb{width:auto;height:62%;top:19%;right:4%}
+.side-l.state .ownb,.side-r.state .ownb{height:auto;width:58%;top:auto;bottom:4%}
+.side-l.state .ownb{right:6%}.side-r.state .ownb{left:6%;right:auto}
+.band.grow svg{animation:grow .75s cubic-bezier(.3,1.7,.5,1)}
+@keyframes grow{0%{transform:scale(.3,0)}100%{transform:none}}
+.band.grow::after{content:"";position:absolute;left:0;right:0;bottom:-10%;height:60%;background:radial-gradient(circle at 30% 70%,#fff 0 18%,transparent 30%),radial-gradient(circle at 70% 75%,#fff 0 16%,transparent 28%),radial-gradient(circle at 50% 85%,#fff 0 20%,transparent 32%);opacity:0;animation:dust .8s ease-out}
+@keyframes dust{0%{opacity:.95;transform:scale(.6)}100%{opacity:0;transform:scale(1.5) translateY(-20%)}}
+.band.lux{animation:luxglow .5s ease 3}
+@keyframes luxglow{50%{box-shadow:inset 0 0 0 4px #ffc93c,0 0 18px #ffc93c}}
+.tbody{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4%;text-align:center;padding:4%;line-height:1.05}
+.tt{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;max-width:100%}
+.side-l .tbody,.side-r .tbody{flex-direction:row;gap:6%}
+.side-l .tt,.side-r .tt{align-items:flex-start;text-align:left}
+.side-b .tbody{top:30%}.side-t .tbody{bottom:30%}.side-l .tbody{right:30%}.side-r .tbody{left:30%}
+.lm{width:clamp(18px,36cqmin,46px);aspect-ratio:1;flex:none}
+.lm svg{width:100%;height:100%;display:block}
+.side-l .lm,.side-r .lm{width:clamp(18px,50cqh,46px)}
+.nm{font-weight:700;font-size:clamp(8px,16.5cqmin,15px);max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.05;word-break:break-word}
+.side-l .nm,.side-r .nm{font-size:clamp(8px,19cqh,15px)}
+.pr{font-family:var(--f-display);font-size:clamp(8px,15cqmin,15px);background:var(--ink);color:var(--sun);border-radius:999px;padding:.05em .5em}
+.corner .lm{width:clamp(22px,44cqmin,64px)}
+.corner .nm{font-family:var(--f-display);font-weight:400;font-size:clamp(9px,15cqmin,19px)}
+.t-go{background:#a6e98a}.t-jail{background:#ffd9a8}.t-casino{background:#d4b8ff}.t-gotojail{background:#ffb9b9}
+.t-chance{background:#fff0b0}.t-fate{background:#e7dcff}.t-rail{background:#e2eeff}.t-util{background:#e3f7e7}.t-hospital{background:#ffe0e0}.t-tax{background:#efe7ff}
+.goTxt{font-family:var(--f-display);font-size:clamp(14px,30cqmin,40px);color:#fff;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;line-height:1}
+@container (max-width:44px){.nm{display:none}.pr{font-size:8px}}
+.tile.owned{box-shadow:inset 0 0 0 3.5px var(--oc)}
+.ownb{position:absolute;width:clamp(12px,32cqmin,30px);aspect-ratio:1;border-radius:50%;border:2px solid var(--ink);background:var(--oc);overflow:hidden;display:none;top:3%;right:3%}
+.ownb svg{width:100%;height:100%;display:block}
+.tile.owned .ownb{display:block}
+.side-b .ownb{top:33%}.side-r .ownb{right:3%}.side-l .ownb{right:33%}
+.lv{position:absolute;left:4%;top:3%;font-size:clamp(7px,15cqmin,14px);line-height:1;letter-spacing:-.15em;filter:drop-shadow(0 1px 0 #fff)}
+.side-b .lv{top:23%}.side-r .lv{left:24%}
+.tile.flash{animation:flash .9s ease}
+@keyframes flash{30%{background:var(--sun)}}
+
+/* tokens */
+.tokens{position:absolute;inset:0;pointer-events:none}
+.tok{position:absolute;left:0;top:0;width:var(--tk,40px);height:var(--tk,40px);margin:calc(var(--tk,40px) / -1) 0 0 calc(var(--tk,40px) / -2);transform:translate(var(--x,0),var(--y,0));transition:transform .17s ease-out;z-index:5}
+.tokIn{width:100%;height:100%;border-radius:50%;border:3px solid var(--ink);background:var(--pc);overflow:hidden;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.tokIn svg{width:100%;height:100%;display:block}
+.tok.me .tokIn{box-shadow:0 0 0 3px var(--sun),0 4px 0 rgba(0,0,0,.25)}
+.tok.hop .tokIn{animation:hop .17s ease-out}
+@keyframes hop{50%{transform:translateY(-35%)}}
+
+/* ---------- center ---------- */
+.center{grid-area:2/2/10/12;container-type:size;position:relative;display:block;border:3px solid var(--ink);border-radius:18px;overflow:hidden;
+  background-color:var(--ocean);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='70' height='34'%3E%3Cpath d='M6 20 Q15 12 24 20 T42 20' fill='none' stroke='%23ffffff' stroke-opacity='.4' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E"),radial-gradient(ellipse at 50% 40%,#b9ebe3,var(--ocean-2) 85%)}
+.fxRow{position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap;z-index:2}
+#usmap{position:absolute;inset:0;width:100%;height:100%;display:block;padding:1.2% 1.5% 0}
+#usmap .st{fill:var(--land-off);stroke:#5b5070;stroke-width:.8;stroke-linejoin:round;transition:fill .4s}
+#usmap .st.gs{fill:var(--land);stroke:var(--ink);stroke-width:1.1;cursor:pointer}
+#usmap .shd{fill:#1d5a60;opacity:.28;transform:translate(2px,3px);pointer-events:none}
+#usmap .ocn{font-family:var(--f-body);font-weight:700;font-style:italic;fill:var(--ocean-ink);letter-spacing:.28em;text-anchor:middle;font-size:15px;opacity:.85}
+#usmap .inset{fill:rgba(255,255,255,.18);stroke:var(--ocean-ink);stroke-width:1.6;stroke-dasharray:6 5}
+#usmap .st.gs:hover{fill:#ffe7a8}
+#usmap .nation{fill:none;stroke:var(--ink);stroke-width:2.6;stroke-linejoin:round;pointer-events:none}
+#usmap .bdg{cursor:pointer}
+#usmap .bdg:hover .rg{stroke-width:3.5}
+#usmap .co line{stroke:var(--ink);stroke-width:1.3}
+
+#usmap .mb{pointer-events:none}
+#usmap .mb.lux{filter:drop-shadow(0 0 6px #ffc93c)}
+#usmap .fx{pointer-events:none;text-anchor:middle;dominant-baseline:central;transform-box:fill-box;transform-origin:center}
+#usmap .fx.spin{font-size:70px;animation:spin 2s ease forwards}
+@keyframes spin{0%{opacity:0;transform:scale(.2) rotate(0)}20%{opacity:1}80%{opacity:1}100%{opacity:0;transform:scale(1.4) rotate(720deg)}}
+#usmap .fx.fire{font-size:46px;animation:fire 2s ease forwards}
+@keyframes fire{0%{opacity:0;transform:scale(.3)}15%,85%{opacity:1}30%{transform:scale(1.15)}45%{transform:scale(.9)}60%{transform:scale(1.2)}100%{opacity:0;transform:scale(1)}}
+#usmap .fx.pop{font-size:40px;animation:popUp 1.6s ease forwards}
+@keyframes popUp{0%{opacity:0;transform:translateY(10px) scale(.4)}25%{opacity:1;transform:translateY(-14px) scale(1.15)}80%{opacity:1}100%{opacity:0;transform:translateY(-34px) scale(1)}}
+#usmap .fx.rain{font-size:26px;animation:rain 1.8s ease-in forwards}
+@keyframes rain{0%{opacity:0;transform:translateY(-60px)}15%{opacity:1}100%{opacity:0;transform:translateY(420px) rotate(200deg)}}
+#usmap .ring{fill:none;stroke-width:5;transform-box:fill-box;transform-origin:center;animation:ring 1.2s ease-out forwards}
+@keyframes ring{0%{opacity:1;transform:scale(.2)}100%{opacity:0;transform:scale(3)}}
+.center.shake #usmap{animation:shake .5s}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+
+.panel{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:min(62%,560px);display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 14px 10px;background:var(--paper);border:3px solid var(--ink);border-radius:18px;box-shadow:0 5px 0 var(--ink)}
+.prow1{display:flex;align-items:center;gap:10px;width:100%;justify-content:center}
+.tav{width:38px;height:38px;border-radius:50%;border:3px solid var(--ink);overflow:hidden;background:var(--pc,var(--sun));flex:none}
+.tav svg{width:100%;height:100%;display:block}
+.tname{font-family:var(--f-display);font-size:20px;color:var(--ink)}
+.die{width:clamp(44px,11cqmin,66px);aspect-ratio:1;flex:none;margin-left:6px}
+.die svg{width:100%;height:100%;display:block;overflow:visible}
+.die.rolling svg{animation:roll .16s linear infinite}
+@keyframes roll{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(.9)}100%{transform:rotate(360deg) scale(1)}}
+.die.lucky svg{animation:lucky .8s ease}
+@keyframes lucky{30%{transform:scale(1.35) rotate(-10deg)}60%{transform:scale(1.1) rotate(8deg)}}
+.prompt{font-weight:600;font-size:clamp(13px,3.2cqmin,17px);text-align:center;max-width:94%;text-wrap:balance;min-height:1.3em}
+.btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btns .cbtn{font-size:clamp(13px,2.9cqmin,16px);padding:6px 13px;box-shadow:0 3px 0 var(--ink)}
+.thinking{width:100%;text-align:center;font-size:13px;color:var(--muted);font-weight:600}
+@container (max-width:520px){.panel{width:94%;bottom:6px}}
+@container (max-height:340px){.panel{bottom:4px;padding:6px 8px 8px;gap:4px}.tav{width:28px;height:28px}.tname{font-size:15px}.die{width:38px}.btns .cbtn{padding:5px 10px;font-size:13px}.prompt{font-size:12px}}
+
+/* ---------- HUD player cards ---------- */
+.pc{position:relative;background:var(--paper);border:3px solid var(--ink);border-radius:20px;box-shadow:0 5px 0 #06202e;padding:10px 12px;transition:transform .2s,box-shadow .2s}
+.pc.cur{transform:translateX(-6px);box-shadow:0 5px 0 #06202e,0 0 0 5px var(--sun)}
+.pc.out{filter:grayscale(.85);opacity:.6}
+.pbody{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:center}
+.pav{grid-row:span 2;width:56px;height:56px;border-radius:50%;border:3px solid var(--ink);background:var(--pc);overflow:hidden}
+.pav svg{width:100%;height:100%;display:block}
+.pname{font-family:var(--f-display);font-size:19px;line-height:1.05;display:flex;align-items:center;gap:6px;min-width:0}
+.pname b{font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ptag{font-family:var(--f-body);font-size:11px;font-weight:700;border:2px solid var(--ink);border-radius:6px;padding:0 5px;background:#fff;flex:none}
+.pcash{font-family:var(--f-display);font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
+.pstat{grid-column:1/-1;display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.pstat b{color:var(--ink)}
+.pchips{grid-column:1/-1;display:flex;gap:4px;flex-wrap:wrap}
+.pchips span{font-size:11.5px;font-weight:700;padding:1px 7px;border:2px solid var(--ink);border-radius:999px;background:#fff}
+.pprops{grid-column:1/-1;display:flex;gap:3px;flex-wrap:wrap}
+.pprops i{width:17px;height:17px;border-radius:5px;border:2px solid var(--ink);background:var(--gc);font-style:normal;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--ink)}
+.ribbon{position:absolute;top:-13px;right:12px;background:var(--sun);border:2.5px solid var(--ink);border-radius:999px;padding:0 10px;font-family:var(--f-display);font-size:13px;display:none}
+.pc.cur .ribbon{display:block}
+.bubble{position:absolute;right:calc(100% + 14px);top:12px;width:max-content;z-index:30;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:7px 12px;font-weight:700;font-size:14px;max-width:min(240px,80vw);box-shadow:0 4px 0 var(--ink);animation:bub .25s ease}
+.bubble::before{content:"";position:absolute;right:-13px;top:12px;border:9px solid transparent;border-left-color:var(--ink);border-right:0}
+.bubble::after{content:"";position:absolute;right:-7px;top:15px;border:6px solid transparent;border-left-color:#fff;border-right:0}
+@media (max-width:1000px){.bubble{right:auto;left:8px;top:calc(100% + 12px)}.bubble::before{right:auto;left:20px;top:-12px;border:9px solid transparent;border-bottom-color:var(--ink);border-top:0}.bubble::after{right:auto;left:23px;top:-7px;border:6px solid transparent;border-bottom-color:#fff;border-top:0}}
+@keyframes bub{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@media (max-width:1000px){
+  .pc{padding:8px;border-radius:16px}
+  .pc.cur{transform:translateY(-3px)}
+  .pbody{gap:2px 8px}.pav{width:42px;height:42px}.pname{font-size:15px}.pcash{font-size:19px}
+  .pprops,.ptag{display:none}.pstat{font-size:11.5px}
+}
+@media (max-width:520px){.pc{padding:7px}.pbody{grid-template-columns:28px minmax(0,1fr);gap:3px 6px}.pav{width:28px;height:28px;grid-row:auto;border-width:2px}.pname{font-size:13px}.pcash{grid-column:1/-1;font-size:17px}.pstat{font-size:11px}.pstat span:last-child{display:none}.pchips{display:none}.ribbon{font-size:11px;top:-11px}}
+.pcash{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- log ---------- */
+.logBox{flex:1 1 auto;min-height:150px;display:flex;flex-direction:column;background:var(--paper);border:3px solid var(--ink);border-radius:20px;box-shadow:0 5px 0 #06202e;padding:12px 14px}
+.logBox h4{margin:0 0 8px;font-family:var(--f-display);font-weight:400;font-size:17px}
+#log{list-style:none;margin:0;padding:0;overflow:auto;display:flex;flex-direction:column;gap:5px;font-size:13.5px;flex:1 1 0;min-height:0}
+@media (max-width:1000px){.logBox{flex:none}#log{flex:none;max-height:240px}}
+#log li{display:flex;gap:7px;align-items:flex-start}
+#log li .dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:5px;border:1.5px solid var(--ink);background:#fff}
+#log li.turn{font-weight:700;margin-top:3px}
+
+/* ---------- setup ---------- */
+.overlay{position:fixed;inset:0;z-index:40;overflow:auto;background:rgba(8,32,46,.72);backdrop-filter:blur(3px);padding-top:max(18px,env(safe-area-inset-top,0px));padding-bottom:max(18px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;justify-content:center;align-items:flex-start}
+.setupCard{width:min(980px,100%);margin:auto 0}
+.bigLogo{text-align:center;margin:0 0 14px}
+.bigLogo h1{margin:0;font-family:var(--f-display);font-weight:400;font-size:clamp(32px,5.6vw,56px);line-height:.92;color:var(--sun);-webkit-text-stroke:5px var(--ink);paint-order:stroke fill;text-shadow:0 7px 0 var(--ink);letter-spacing:.01em;text-wrap:balance}
+.bigLogo h1 em{font-style:normal;color:#fff}
+.bigLogo p{margin:14px 0 0;display:inline-block;font-weight:700;letter-spacing:.3em;font-size:16px;background:var(--paper);border:3px solid var(--ink);border-radius:999px;padding:3px 18px 3px 22px;box-shadow:0 3px 0 var(--ink)}
+.langRow{display:flex;justify-content:flex-end}
+.seats{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.seat{background:var(--paper);border:3px solid var(--ink);border-radius:22px;box-shadow:0 6px 0 var(--ink);padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.seatHead{align-self:stretch;display:flex;align-items:center;justify-content:space-between;font-family:var(--f-display);font-size:16px}
+.seatHead .sw{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--ink);background:var(--pc)}
+.charPick{display:flex;align-items:center;gap:8px}
+.arrow{width:38px;height:38px;border:3px solid var(--ink);border-radius:50%;background:#fff;box-shadow:0 3px 0 var(--ink);font-family:var(--f-display);font-size:18px;padding:0}
+.arrow:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.bigAv{width:clamp(96px,24vw,118px);aspect-ratio:1;border-radius:50%;border:4px solid var(--ink);background:var(--pc);overflow:hidden;box-shadow:0 5px 0 var(--ink)}
+.bigAv svg{width:100%;height:100%;display:block}
+.cName{font-family:var(--f-display);font-size:24px;line-height:1}
+.cTitle{font-weight:700;color:var(--muted);font-size:14px}
+.cQuote{font-size:13.5px;min-height:2.6em;font-style:italic;margin-top:-4px}
+.seat input{width:100%;border:3px solid var(--ink);border-radius:12px;padding:7px 10px;font:inherit;font-weight:600;text-align:center;background:#fff}
+.seg{display:inline-flex;flex-wrap:wrap;gap:4px;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:4px;justify-content:center}
+.seg button{border:0;background:transparent;border-radius:9px;padding:6px 12px;font-weight:700;font-size:14px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--sun);color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
+.cyc{display:flex;align-items:center;gap:8px}
+.cv{min-width:118px;text-align:center;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:5px 10px;line-height:1.1}
+.cv b{display:block;font-family:var(--f-display);font-weight:400;font-size:19px}
+.cv small{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-top:2px}
+.seat .cv{min-width:150px}
+.opts{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));justify-items:center;margin-top:14px;background:var(--paper);border:3px solid var(--ink);border-radius:22px;box-shadow:0 6px 0 var(--ink);padding:16px;display:flex;flex-wrap:wrap;gap:16px 28px;justify-content:center}
+.opt{display:flex;flex-direction:column;align-items:center;gap:5px}
+.opt label{font-family:var(--f-display);font-size:15px}
+.startRow{display:flex;justify-content:center;margin-top:16px}
+.startRow .cbtn{font-family:var(--f-display);font-weight:400;font-size:28px;padding:10px 48px;border-width:4px;box-shadow:0 6px 0 var(--ink)}
+.hint{text-align:center;color:#d9f2ef;font-weight:600;font-size:14px;margin-top:14px;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+
+/* ---------- modals ---------- */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(6,25,36,.55);display:flex;align-items:center;justify-content:center;padding-top:max(16px,env(safe-area-inset-top,0px));padding-bottom:max(16px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));overflow:auto}
+#deed{z-index:60}
+.sheet{width:min(440px,100%);max-height:100%;overflow:auto;background:var(--paper);border:4px solid var(--ink);border-radius:24px;box-shadow:0 8px 0 var(--ink);padding:20px;animation:popIn .25s cubic-bezier(.3,1.6,.6,1)}
+.sheet.wide{width:min(560px,100%)}
+@keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:none;opacity:1}}
+.sheet h3{margin:0 0 6px;font-family:var(--f-display);font-weight:400;font-size:26px;text-wrap:balance}
+.sheet p{margin:0 0 12px}
+.acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
+.cardSheet{padding:0;overflow:hidden;width:min(330px,100%)}
+.cardTop{padding:12px;text-align:center;font-family:var(--f-display);font-size:18px;border-bottom:4px solid var(--ink);background:var(--sun)}
+.cardSheet.fate .cardTop{background:#b99bff}.cardSheet.extreme .cardTop{background:#ff8a65}.cardSheet.leader .cardTop{background:#7ad3a0}
+.cardTag{display:inline-block;margin:12px auto 0;font-weight:700;font-size:13px;padding:2px 10px;border:2.5px solid var(--ink);border-radius:999px;background:#fff}
+.cardBody{padding:8px 22px 20px;text-align:center}
+.cardIcon{font-size:64px;line-height:1;margin:14px 0 8px;animation:wob 1s ease}
+@keyframes wob{30%{transform:rotate(-12deg) scale(1.15)}60%{transform:rotate(8deg)}}
+.cardBody h3{font-size:30px;margin-bottom:4px}
+.cardBody p{font-size:16px;font-weight:500}
+.plist{display:grid;gap:8px;margin:12px 0}
+.pitem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:8px 12px;box-shadow:0 3px 0 var(--ink);font-weight:600}
+.pitem:hover{background:#fff6d6}
+.pitem .em{width:34px;height:34px;border-radius:9px;border:2.5px solid var(--ink);background:var(--c);display:flex;align-items:center;justify-content:center;padding:3px}
+.pitem .em svg{width:100%;height:100%;display:block}
+.pitem .ps{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.deedHead{margin:-20px -20px 14px;padding:16px 20px;background:var(--gc);border-bottom:4px solid var(--ink);display:flex;align-items:center;gap:14px}
+.deedHead .em{width:58px;height:58px;flex:none;background:#fff;border:3px solid var(--ink);border-radius:50%;padding:6px}
+.deedHead .em svg{width:100%;height:100%;display:block}
+.dbld{display:inline-block;width:34px;height:22px;vertical-align:middle;margin-right:6px}
+.dbld svg{width:100%;height:100%;display:block}
+.sicon{display:inline-block;width:34px;height:34px;vertical-align:middle;margin-right:6px}
+.sicon svg{width:100%;height:100%}
+.deedHead .dc{font-family:var(--f-display);font-size:28px;line-height:1;color:#fff;-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill}
+.deedHead .dn{font-weight:700}
+.rtab{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:15px}
+.rtab td{padding:6px 4px;border-bottom:2px dashed #e4d9bd}
+.rtab td:last-child{text-align:right;font-weight:700}
+.rtab tr.now td{background:#fff1b8}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14.5px;margin-bottom:12px}
+.meta span:nth-child(odd){color:var(--muted);font-weight:600}
+.rules{font-size:14.5px}
+.rules h4{margin:14px 0 4px;font-family:var(--f-display);font-weight:400;font-size:18px}
+.rules ul{margin:0;padding-left:20px}.rules li{margin:3px 0}
+.wheelBox{position:relative;width:min(280px,72vw);aspect-ratio:1;margin:10px auto 14px}
+.wheel{position:absolute;inset:0;border-radius:50%;border:5px solid var(--ink);box-shadow:0 6px 0 var(--ink);transition:transform 3.4s cubic-bezier(.12,.7,.12,1)}
+.wl{position:absolute;left:50%;top:50%;width:46%;transform-origin:0 50%;font-weight:700;font-size:12.5px;text-align:right;padding-right:12px;line-height:1.05}
+.pointer{position:absolute;left:50%;top:-14px;transform:translateX(-50%);width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;border-top:28px solid var(--ink);z-index:2}
+.hub{position:absolute;left:50%;top:50%;width:26%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:var(--pc);border:4px solid var(--ink);overflow:hidden}
+.hub svg{width:100%;height:100%;display:block}
+.wres{text-align:center;font-family:var(--f-display);font-size:22px;min-height:1.3em}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin:8px 0 14px}
+.pod{display:flex;flex-direction:column;align-items:center;gap:6px;width:31%}
+.pod .av{width:70%;aspect-ratio:1;border-radius:50%;border:3.5px solid var(--ink);background:var(--pc);overflow:hidden}
+.pod .av svg{width:100%;height:100%;display:block}
+.pod .nm2{font-family:var(--f-display);font-size:16px;text-align:center;line-height:1}
+.pod .w2{font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.pod .blk{width:100%;border:3.5px solid var(--ink);border-radius:12px 12px 0 0;background:var(--pc);display:flex;align-items:flex-start;justify-content:center;font-family:var(--f-display);font-size:30px;color:#fff;-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill;padding-top:6px}
+.goTitle{font-family:var(--f-display);font-size:38px;text-align:center;margin:0;color:var(--sun);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:0 4px 0 var(--ink)}
+.titles{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+
+/* ---------- floating fx ---------- */
+#fx{position:fixed;inset:0;pointer-events:none;z-index:70}
+.fly{position:fixed;transform:translate(-50%,-50%);font-family:var(--f-display);font-size:22px;white-space:nowrap;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;animation:fly 1.4s ease-out forwards}
+.fly.good{color:#5ef08f}.fly.bad{color:#ff7b7f}.fly.big{font-size:34px}
+@keyframes fly{0%{opacity:0;margin-top:0}12%{opacity:1}100%{opacity:0;margin-top:-70px}}
+.toast{position:fixed;left:50%;top:22%;transform:translateX(-50%);font-family:var(--f-display);font-size:clamp(24px,5vw,44px);color:var(--sun);-webkit-text-stroke:4px var(--ink);paint-order:stroke fill;text-shadow:0 5px 0 var(--ink);white-space:nowrap;animation:toast 1.9s ease forwards}
+@keyframes toast{0%{opacity:0;transform:translateX(-50%) scale(.4)}15%{opacity:1;transform:translateX(-50%) scale(1.1)}25%{transform:translateX(-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-30px)}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+
+<div class="stage">
+  <main class="arena" id="arena">
+    <div class="boardWrap"><div class="board" id="board"></div></div>
+    <aside class="side">
+      <div class="sideTop"><div class="logo">AMERICAN DREAM<br>TYCOON<span data-i18n="title">美国梦大亨</span></div><div class="roundBox" id="roundBox"></div></div>
+      <div class="tools">
+        <button class="ib" id="btnLang" type="button">EN</button>
+        <button class="ib" id="btnSound" type="button" aria-label="Sound">🔊</button>
+        <button class="ib" id="btnFull" type="button" aria-label="Fullscreen">⛶</button>
+        <button class="ib" id="btnRules" type="button" data-i18n="rules">规则</button>
+        <button class="ib" id="btnNew" type="button" data-i18n="newGame">新游戏</button>
+      </div>
+      <div class="players" id="players"></div>
+      <section class="logBox"><h4 data-i18n="log">游戏记录</h4><ol id="log"></ol></section>
+    </aside>
+  </main>
+</div>
+<div class="overlay" id="setup"><div class="setupCard" id="setupCard"></div></div>
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet"></div></div>
+<div class="modal" id="deed" hidden><div class="sheet" id="deedSheet"></div></div>
+<div id="fx"></div>
+
+<script>
+const USMAP={"states":[{"c":"AL","d":"M648,492L648,492L648,492ZM642,384L642,384L666,382L689,380L702,427L704,429L705,432L708,436L707,439L710,440L707,443L707,446L706,450L707,453L708,455L709,457L708,463L708,465L711,469L694,471L682,472L661,474L660,477L662,480L665,481L665,485L666,486L664,490L658,492L659,490L656,488L655,482L653,482L652,486L652,490L649,489L646,489L642,455L642,444L643,413L644,386Z","x":672,"y":432},{"c":"AK","d":"M104,552L104,552L104,552ZM99,570L103,565L105,569L103,569L101,570ZM95,582L95,582L95,582ZM93,575L96,573L97,573L99,571L103,571L103,574L105,573L99,578L98,579L97,577L95,580ZM93,583L93,583L93,583ZM89,588L89,588L89,588ZM72,594L72,594L72,594ZM71,592L71,592L71,592ZM68,593L69,591L70,592ZM66,590L67,590L67,592ZM68,564L68,564L68,564ZM61,591L61,591L61,591ZM58,592L58,592L58,592ZM66,524L66,524L66,524ZM56,596L56,596L56,596ZM45,597L45,597L45,597ZM43,595L43,595L43,595ZM41,596L41,596L41,596ZM44,547L46,548L50,547L51,549L51,551L48,552L44,549ZM31,601L34,600L36,598L36,597L38,596L40,598L37,601L32,602ZM51,505L59,501L64,500L66,500L65,504L71,505L73,503L74,504L72,501L70,498L71,498L71,500L73,498L70,497L67,496L66,492L63,488L59,484L61,483L62,481L67,481L70,479L72,475L75,471L78,471L82,468L87,468L89,465L93,466L91,468L92,469L94,466L95,469L99,468L101,469L101,470L104,472L109,471L114,473L119,473L123,474L126,472L132,474L133,474L147,547L151,547L152,546L155,545L155,547L162,552L164,555L167,552L167,548L169,546L172,547L176,552L181,554L182,556L190,562L190,564L192,566L193,565L200,567L201,569L203,573L201,578L200,578L198,575L199,574L198,572L198,575L193,574L192,571L191,572L189,570L190,568L188,565L186,564L183,563L182,560L178,557L176,557L171,551L175,558L173,557L170,557L168,559L162,556L160,554L153,552L154,551L153,549L151,551L149,551L146,550L141,550L135,552L135,550L132,550L132,548L131,550L129,549L125,551L126,549L128,548L127,547L126,547L124,545L122,546L119,547L120,550L120,552L121,553L119,554L114,554L113,557L111,559L110,557L109,560L106,561L105,560L109,556L107,557L105,556L107,552L107,549L111,546L112,547L113,546L112,544L109,544L106,546L102,553L102,554L100,557L96,560L96,562L98,562L100,564L96,567L96,569L92,571L91,573L90,572L89,574L88,574L86,576L86,578L83,580L82,579L80,582L77,583L79,584L77,586L71,586L67,589L66,588L63,589L63,588L61,591L60,591L56,592L53,594L50,594L47,595L46,593L49,592L52,591L57,590L60,587L62,585L66,585L67,585L69,583L71,581L75,579L78,576L81,573L82,566L84,564L84,563L80,565L78,563L77,564L77,566L76,566L73,562L72,563L71,561L65,564L64,563L65,561L64,558L66,557L64,551L63,552L58,553L57,553L57,551L53,547L54,545L54,541L53,542L51,538L53,536L54,534L57,530L59,527L61,526L64,528L67,525L71,525L73,523L73,519L72,517L74,516L73,514L68,517L61,515L59,516L55,514L54,509L56,509L52,507ZM25,603L29,599L31,599L31,600L28,602ZM28,573L28,573L28,573ZM20,602L20,602L20,602ZM27,568L27,568L27,568ZM16,603L16,603L16,603ZM34,518L36,517L38,518L39,518L42,521L45,522L42,523L41,524L39,521L37,519L35,520ZM7,603L7,603L7,603ZM23,540L23,540L23,540ZM0,602L5,604L3,604ZM-6,601L-1,601L-2,603ZM-10,599L-10,599L-10,599ZM-11,601L-11,601L-11,601ZM-15,601L-13,599L-11,601ZM-18,600L-18,600L-18,600ZM-20,597L-20,597L-20,597ZM-30,593L-30,593L-30,593ZM-35,593L-35,593L-35,593ZM-41,589L-41,589L-41,589ZM-56,577L-56,577L-56,577ZM-58,571L-55,572L-54,574L-56,573ZM197,577L197,577L197,577ZM196,577L196,577L196,577ZM195,575L195,575L195,575ZM188,570L188,570L188,570ZM187,569L187,569L187,569ZM186,577L188,576L187,578ZM185,573L185,570L187,570L190,572L194,576L196,580L192,579L190,578L192,581L190,580L189,576L186,574ZM183,574L183,574L183,574ZM180,567L182,565L185,564L189,567L186,569L184,569L184,572L183,572ZM175,556L176,557L178,557L180,559L179,560L181,563L180,566L179,563ZM174,565L175,563L177,563L180,568L181,573L176,568L175,565ZM173,566L175,566L174,568ZM169,561L169,560L172,558L175,559L177,563L174,562L174,565L171,564ZM121,555L124,550L124,551ZM120,551L122,549L121,552Z","x":103,"y":523},{"c":"AZ","d":"M145,407L149,407L151,404L150,401L147,400L147,399L148,395L147,394L148,392L150,391L152,389L154,386L154,380L156,379L157,377L160,376L163,374L160,370L158,363L156,359L157,356L157,354L159,353L159,349L158,345L159,342L159,338L160,336L159,335L160,331L163,331L167,331L168,335L170,335L173,331L176,313L203,318L239,324L265,328L251,424L247,456L229,454L208,450L172,429L142,412L143,409Z","x":208,"y":382},{"c":"CO","d":"M277,237L301,240L333,244L348,245L361,247L382,248L395,249L394,272L391,327L390,341L372,339L349,338L315,334L279,330L265,328L268,302L268,299L271,280Z","x":332,"y":290},{"c":"FL","d":"M815,594L815,594L815,594ZM813,596L813,596L813,596ZM807,599L811,597L812,597L808,599ZM794,604L795,602L800,598L804,599L805,600L802,601L796,604ZM790,605L790,605L790,605ZM786,605L786,605L786,605ZM777,558L777,558L777,558ZM770,606L770,606L770,606ZM720,495L720,495L720,495ZM711,469L714,475L766,471L766,475L767,476L770,476L770,471L769,469L769,466L770,465L775,466L780,466L783,476L787,486L790,491L795,500L801,508L805,511L806,514L805,517L807,522L812,529L815,537L820,544L822,549L823,554L823,565L824,571L824,575L822,574L821,580L822,581L821,583L822,583L824,578L824,580L822,587L818,592L816,593L819,589L820,586L818,586L814,588L812,587L811,589L807,590L805,588L805,585L801,578L798,576L793,574L792,575L789,571L788,566L785,563L782,561L781,563L780,559L781,555L780,552L779,553L780,556L778,557L773,551L769,546L766,543L767,541L771,533L769,532L770,534L768,533L768,531L765,530L764,532L766,532L767,534L767,537L765,537L762,533L762,530L761,526L762,527L764,521L764,517L761,512L762,510L760,508L759,505L755,505L754,506L753,503L751,503L750,500L746,498L745,495L743,494L740,491L732,487L730,488L727,487L726,490L726,492L723,492L716,497L716,496L714,498L712,498L714,500L719,498L714,501L710,499L707,500L706,496L706,495L707,499L708,497L706,494L696,488L689,486L681,486L668,489L664,490L666,486L665,485L665,481L662,480L660,477L661,474L682,472L694,471Z","x":768,"y":516},{"c":"GA","d":"M689,380L713,377L726,375L735,374L735,375L732,379L732,382L735,383L738,385L741,385L744,389L744,391L747,394L748,396L755,400L756,402L759,403L762,406L762,408L764,409L764,410L766,412L771,414L771,416L773,418L774,423L777,424L781,430L780,431L781,433L786,435L787,436L783,442L782,447L781,451L781,454L780,456L780,459L778,460L780,461L780,466L775,466L770,465L769,466L769,469L770,471L770,476L767,476L766,475L766,471L714,475L711,469L708,465L708,463L709,457L708,455L707,453L706,450L707,446L707,443L710,440L707,439L708,436L705,432L704,429L702,427Z","x":736,"y":428},{"c":"IN","d":"M640,230L642,231L645,231L647,231L652,228L669,226L686,224L686,225L688,247L693,284L691,286L693,287L692,289L694,289L694,292L691,292L688,295L685,294L683,295L684,298L682,300L681,301L680,304L677,305L676,308L676,312L674,313L670,311L669,309L666,312L666,314L662,315L661,313L657,316L655,319L651,316L648,317L647,315L647,318L645,317L643,318L641,317L642,319L639,320L638,317L639,316L639,314L640,312L639,310L640,308L642,309L645,303L645,300L647,298L647,297L646,295L646,293L643,288L645,284Z","x":665,"y":269},{"c":"KS","d":"M394,272L422,273L443,274L465,275L495,275L510,275L512,277L515,278L516,278L517,281L516,281L514,286L517,289L519,293L523,294L522,295L523,326L523,344L507,344L489,344L459,344L433,343L402,341L390,341L391,327Z","x":456,"y":309},{"c":"ME","d":"M940,115L940,115L940,115ZM938,116L938,114L940,116ZM936,112L936,112L936,112ZM932,116L932,116L932,116ZM934,125L934,125L934,125ZM931,119L933,117L934,119L932,121ZM930,116L930,113L931,116ZM910,150L908,149L907,147L905,145L895,114L891,102L892,101L895,103L894,99L897,99L895,96L897,92L899,90L898,89L900,86L898,83L899,80L898,80L898,76L900,74L899,67L906,48L909,48L910,51L912,52L917,49L920,48L920,46L923,46L930,50L937,74L939,80L942,81L945,80L946,82L945,83L946,84L946,87L949,90L950,88L952,88L957,95L955,99L954,100L953,99L950,106L949,104L947,104L946,107L944,108L944,110L941,110L941,113L939,114L937,112L939,110L937,110L935,111L937,115L936,117L937,118L937,120L936,118L934,116L935,115L932,114L931,110L930,112L929,113L930,114L929,120L930,123L928,125L926,126L924,128L921,129L920,132L918,131L917,133L915,134L915,137L913,138L913,142L911,143L911,146Z","x":919,"y":94},{"c":"MA","d":"M928,187L931,186L932,184L933,186L931,188ZM918,188L919,188L921,184L925,187ZM871,168L884,165L903,161L904,158L906,156L909,155L911,159L914,158L913,160L911,162L911,163L909,166L910,169L912,167L914,168L917,171L917,174L919,174L920,177L922,178L925,177L929,175L928,172L927,173L926,170L928,171L931,177L926,180L925,180L923,182L920,183L919,180L918,179L918,182L915,183L915,185L913,186L912,183L911,183L910,182L908,181L906,179L905,176L899,178L899,178L882,182L871,184L871,183Z","x":897,"y":172},{"c":"MN","d":"M479,71L492,71L511,71L511,62L514,62L516,64L518,73L518,76L520,77L524,77L525,78L531,79L532,81L536,80L536,79L540,78L544,79L548,80L549,80L548,82L551,82L553,87L555,87L555,84L558,84L559,86L561,87L563,87L566,91L571,90L575,86L577,86L578,89L588,88L592,91L594,90L596,91L590,94L582,98L579,99L573,106L570,109L565,114L559,119L560,121L559,120L556,122L556,136L556,137L551,139L548,144L548,147L549,147L551,150L550,154L550,158L549,158L550,162L549,166L554,170L557,170L559,173L564,175L565,178L570,182L572,182L576,187L575,191L576,193L549,194L534,195L516,195L491,195L491,154L490,153L487,152L484,147L489,142L489,140L489,137L489,131L487,128L486,123L486,118L485,117L485,102L483,98L481,89L481,87L481,81L481,78L479,71Z","x":525,"y":132},{"c":"NJ","d":"M849,246L850,244L851,241L855,239L855,237L859,232L861,231L854,226L853,224L851,223L850,221L852,216L850,214L851,212L853,209L853,206L855,204L862,207L870,209L869,216L869,217L867,218L867,221L867,222L871,222L872,225L872,229L873,237L871,245L870,247L867,251L865,257L863,259L863,254L860,253L859,254L852,250L850,250L849,246Z","x":862,"y":230},{"c":"NC","d":"M864,329L866,329L867,331ZM863,350L864,348L871,343L871,336L871,344L867,346ZM756,334L780,331L794,329L812,326L840,320L842,319L859,316L861,320L864,325L868,332L866,328L864,328L860,319L859,318L856,317L859,320L862,325L861,325L859,323L858,325L854,323L857,326L855,327L850,326L853,328L851,330L849,331L847,330L845,328L847,333L852,331L853,331L856,330L859,330L859,332L860,337L860,336L860,330L863,329L866,335L865,337L863,338L861,342L860,344L853,345L851,342L850,342L852,345L848,345L843,343L846,345L850,346L853,346L854,347L853,352L850,355L846,353L846,355L850,356L852,354L855,353L855,351L857,353L859,352L859,354L857,356L856,360L862,350L863,350L858,357L856,362L856,361L851,361L847,363L844,365L838,370L836,374L834,377L833,384L829,383L825,384L823,386L798,368L778,371L777,369L774,365L772,367L772,365L749,367L746,368L742,371L735,374L726,375L713,377L713,371L716,370L717,369L717,366L721,363L726,362L729,359L730,358L733,356L735,356L737,352L738,350L740,348L741,351L743,349L744,347L747,345L749,346L751,346L752,341L755,338Z","x":801,"y":351},{"c":"ND","d":"M377,66L404,68L421,69L445,70L469,71L479,71L479,71L481,78L481,81L481,87L481,89L483,98L485,102L485,117L486,118L486,123L487,128L489,131L489,137L489,140L477,140L460,139L443,139L412,137L392,136L371,134L375,88Z","x":429,"y":104},{"c":"OK","d":"M372,339L390,341L402,341L433,343L459,344L489,344L507,344L523,344L523,355L527,381L526,421L522,420L521,418L520,418L517,416L516,416L512,413L511,415L507,415L506,414L501,416L499,415L498,416L493,418L492,420L490,418L486,416L485,415L484,417L482,416L481,414L478,417L477,419L476,419L475,414L472,417L471,416L471,415L468,414L467,413L463,416L461,415L462,413L459,412L458,409L458,410L454,409L452,411L450,409L447,409L443,407L439,407L438,404L435,401L435,403L432,402L429,403L426,399L424,398L426,354L396,352L372,351Z","x":471,"y":376},{"c":"PA","d":"M756,209L759,207L768,200L769,206L783,204L800,201L825,196L841,192L843,195L845,194L847,197L848,200L850,202L854,203L855,204L853,206L853,209L851,212L850,214L852,216L850,221L851,223L853,224L854,226L861,231L859,232L855,237L855,239L851,241L848,241L847,242L845,245L816,251L782,257L765,260L761,239Z","x":806,"y":226},{"c":"SD","d":"M369,156L369,156L371,134L392,136L412,137L443,139L460,139L477,140L489,140L489,142L484,147L487,152L490,153L491,154L491,195L488,195L489,198L488,200L491,204L490,206L489,210L488,212L491,218L488,218L486,216L487,215L482,212L479,212L476,210L470,210L467,210L466,212L457,207L457,206L434,205L404,204L391,203L365,201Z","x":430,"y":172},{"c":"TX","d":"M372,351L396,352L426,354L424,398L426,399L429,403L432,402L435,403L435,401L438,404L439,407L443,407L447,409L450,409L452,411L454,409L458,410L458,409L459,412L462,413L461,415L463,416L467,413L468,414L471,415L471,416L472,417L475,414L476,419L477,419L478,417L481,414L482,416L484,417L485,415L486,416L490,418L492,420L493,418L498,416L499,415L501,416L506,414L507,415L511,415L512,413L516,416L517,416L520,418L521,418L522,420L526,421L529,423L532,422L535,423L535,435L535,458L538,460L540,463L540,467L542,469L544,474L545,476L546,480L546,484L544,487L542,490L543,493L542,496L543,497L543,502L541,504L540,506L539,507L541,510L535,511L522,517L527,513L522,514L523,512L524,509L521,509L520,511L518,511L517,514L520,515L520,519L516,523L515,522L515,524L518,522L522,518L523,519L517,523L510,530L509,530L502,534L496,537L492,539L489,542L485,544L480,548L478,551L475,555L472,562L470,566L470,570L470,574L473,587L474,592L472,582L470,576L470,569L470,564L472,560L475,554L476,551L478,550L480,546L483,545L486,542L489,541L489,540L486,542L484,542L484,540L482,540L482,544L479,546L477,545L474,547L475,548L477,547L477,549L474,553L473,552L469,552L470,553L470,555L473,556L471,559L469,564L467,565L467,563L465,566L469,566L469,572L468,576L469,583L470,583L472,588L471,592L474,593L474,595L472,595L470,596L470,598L467,597L464,593L461,593L454,593L452,592L447,589L443,588L440,585L439,585L434,584L435,582L433,581L433,577L431,574L428,570L428,567L427,564L428,559L425,556L423,555L420,552L419,548L418,548L416,544L414,543L412,541L410,534L408,532L408,530L406,526L405,522L403,520L403,519L399,516L398,513L394,511L393,509L390,506L386,506L383,505L378,505L377,503L373,503L372,505L370,504L366,505L364,510L363,514L362,514L361,517L359,517L357,520L357,522L353,521L351,520L348,517L345,516L343,514L340,513L337,511L335,508L334,508L330,504L330,501L328,498L327,495L328,492L325,487L325,483L323,480L316,475L313,472L312,470L309,468L306,463L302,460L299,454L296,452L294,449L295,447L318,449L339,451L363,453L365,430L367,408L371,351Z","x":434,"y":469},{"c":"WY","d":"M369,156L365,201L361,247L348,245L333,244L301,240L277,237L253,234L244,232L247,210L250,193L256,154L258,142L263,143L289,147L298,148L339,153L339,153Z","x":308,"y":195},{"c":"CT","d":"M871,184L882,182L899,178L899,178L901,186L902,191L902,193L900,193L893,197L887,198L885,199L885,198L882,203L878,205L874,208L872,206L876,203L874,201Z","x":886,"y":190},{"c":"MO","d":"M502,262L521,262L545,261L565,260L571,260L576,265L575,268L576,273L577,275L577,276L578,280L583,284L584,286L590,290L591,297L593,298L595,296L598,297L601,298L599,301L600,303L598,309L598,313L602,316L606,321L607,320L612,324L614,326L613,328L615,330L615,332L614,333L617,338L619,340L619,338L621,340L622,340L621,344L622,345L620,346L621,347L620,349L617,349L617,351L616,351L615,352L615,354L614,356L615,357L612,358L614,360L612,363L600,364L603,359L605,357L605,354L604,352L586,353L565,354L550,355L523,355L523,344L523,326L522,295L523,294L519,293L517,289L514,286L516,281L517,281L516,278L515,278L512,277L510,275L508,274L508,272L507,270L505,268Z","x":560,"y":312},{"c":"WV","d":"M733,295L734,295L738,293L738,290L740,290L739,285L740,284L740,281L741,280L743,280L744,283L746,281L745,278L746,273L748,273L748,271L750,269L752,271L754,269L758,263L759,263L758,260L760,256L759,252L761,247L760,243L759,241L761,239L765,260L782,257L784,269L787,266L790,261L792,262L794,257L797,259L800,258L802,255L803,255L805,253L808,255L811,254L811,256L813,258L814,260L813,265L803,259L803,262L802,264L803,266L799,273L797,274L797,277L794,275L792,283L790,286L787,285L786,283L784,283L784,287L780,294L780,297L777,302L776,305L778,306L776,308L777,309L774,312L773,310L769,314L767,313L767,315L761,318L758,316L755,320L753,320L750,319L747,315L747,313L744,313L741,311L740,309L736,306L734,302L734,298Z","x":767,"y":285},{"c":"IL","d":"M576,265L577,259L581,258L581,255L584,252L584,248L581,245L582,241L585,240L588,239L593,236L594,233L596,231L596,226L596,224L592,222L590,218L587,216L587,215L618,214L634,212L634,217L635,219L637,222L639,227L640,230L645,284L643,288L646,293L646,295L647,297L647,298L645,300L645,303L642,309L640,308L639,310L640,312L639,314L639,316L638,317L639,320L637,323L639,327L636,328L632,330L632,332L634,335L633,337L632,337L624,334L623,334L621,338L621,340L619,338L619,340L617,338L614,333L615,332L615,330L613,328L614,326L612,324L607,320L606,321L602,316L598,313L598,309L600,303L599,301L601,298L598,297L595,296L593,298L591,297L590,290L584,286L583,284L578,280L577,276L577,275L576,273L575,268Z","x":615,"y":270},{"c":"NM","d":"M265,328L279,330L315,334L349,338L372,339L372,351L371,351L367,408L365,430L363,453L339,451L318,449L295,447L294,449L296,452L264,448L263,458L247,456L251,424Z","x":311,"y":393},{"c":"AR","d":"M523,355L550,355L565,354L586,353L604,352L605,354L605,357L603,359L600,364L612,363L614,365L611,366L613,367L608,369L610,372L608,373L609,374L607,374L608,376L606,376L605,378L607,378L605,381L607,383L605,384L605,386L603,387L604,389L601,391L600,389L601,392L598,393L600,394L598,396L599,397L599,400L595,402L596,403L594,404L594,407L592,408L593,409L590,411L591,412L590,413L592,415L589,415L590,418L587,418L589,420L588,420L588,422L588,423L589,425L591,430L589,431L590,432L589,433L569,434L535,435L535,423L532,422L529,423L526,421L527,381Z","x":564,"y":391},{"c":"CA","d":"M77,374L81,377L81,380L79,378L79,376ZM75,384L78,390L76,389ZM65,358L65,358L65,358ZM58,374L58,374L58,374ZM57,355L59,356L63,359L60,359L57,357ZM50,355L54,355L55,358L52,358ZM47,353L49,353L49,354ZM33,160L46,164L62,168L84,175L100,179L89,224L83,246L132,319L157,356L156,359L158,363L160,370L163,374L160,376L157,377L156,379L154,380L154,386L152,389L150,391L148,392L147,394L148,395L147,399L147,400L150,401L151,404L149,407L145,407L99,402L100,400L98,398L99,394L99,388L97,382L92,376L90,374L88,371L86,370L85,371L82,369L83,367L82,362L78,361L76,362L70,357L69,354L65,349L59,348L55,345L49,344L49,342L46,340L48,338L49,335L48,333L50,328L48,327L46,325L47,321L45,319L43,315L42,313L41,311L40,308L40,305L39,304L37,300L35,296L35,292L36,289L38,289L40,286L38,281L35,281L34,279L31,274L33,271L32,267L33,261L35,261L35,266L36,267L38,270L39,265L36,262L37,259L36,257L39,256L38,253L36,254L36,257L33,260L31,257L29,255L26,253L28,250L28,248L27,247L27,243L24,240L23,236L21,232L20,229L22,227L21,219L24,216L24,209L22,202L18,197L19,193L21,190L27,184L28,182L28,179L29,177L31,173L32,166L30,164Z","x":82,"y":288},{"c":"DE","d":"M849,246L849,246L849,246ZM845,245L847,242L848,241L851,241L850,244L848,247L849,249L853,252L854,255L855,258L857,261L860,263L861,263L864,270L853,273L846,248Z","x":853,"y":260},{"c":"DC","d":"M826,267L827,265L830,267L828,270Z","x":828,"y":267},{"c":"HI","d":"M305,584L308,582L310,578L309,575L310,573L315,576L318,576L322,578L326,582L326,584L328,584L328,587L332,589L332,590L329,593L325,595L322,595L317,598L315,602L314,603L309,600L308,599L309,594L308,590ZM292,558L292,556L294,555L296,559L300,557L306,561L307,562L305,564L299,566L297,565L297,561L293,560ZM292,567L294,565L295,567ZM284,558L287,558L289,560L286,562ZM279,554L280,551L288,552L291,553L289,555L288,555L283,554ZM258,543L261,543L265,540L267,544L267,546L270,547L271,549L268,550L266,549L262,549ZM226,533L227,530L231,528L235,529L237,530L236,534L233,536L230,536ZM216,537L220,533L220,536L218,536L217,538Z","x":300,"y":573},{"c":"IA","d":"M491,195L516,195L534,195L549,194L576,193L577,196L579,199L577,202L578,207L580,211L582,212L586,212L587,215L587,216L590,218L592,222L596,224L596,226L596,231L594,233L593,236L588,239L585,240L582,241L581,245L584,248L584,252L581,255L581,258L577,259L576,265L571,260L565,260L545,261L521,262L502,262L500,259L501,255L499,245L499,242L496,240L496,236L497,234L495,232L496,230L494,230L493,224L491,221L492,219L491,218L488,212L489,210L490,206L491,204L488,200L489,198L488,195Z","x":540,"y":227},{"c":"KY","d":"M621,340L621,338L623,334L624,334L632,337L633,337L634,335L632,332L632,330L636,328L639,327L637,323L639,320L642,319L641,317L643,318L645,317L647,318L647,315L648,317L651,316L655,319L657,316L661,313L662,315L666,314L666,312L669,309L670,311L674,313L676,312L676,308L677,305L680,304L681,301L682,300L684,298L683,295L685,294L688,295L691,292L694,292L694,289L692,289L693,287L691,286L693,284L694,283L696,285L699,283L701,285L703,288L704,290L710,290L712,292L714,293L716,291L721,292L723,292L725,289L727,288L728,292L731,292L733,295L734,298L734,302L736,306L740,309L741,311L744,313L747,313L741,320L738,322L735,325L735,326L733,328L733,330L730,332L729,334L724,337L722,337L720,339L720,339L704,341L692,341L687,342L681,343L672,343L645,346L645,345L641,345L641,350L619,351L617,351L617,349L620,349L621,347L620,346L622,345L621,344L622,340ZM616,351L615,352L616,351Z","x":688,"y":321},{"c":"MD","d":"M850,285L849,285L850,285ZM847,281L848,280L849,282ZM782,257L816,251L845,245L846,248L853,273L864,270L863,279L863,280L856,283L855,284L853,284L852,285L851,282L850,280L851,279L849,278L848,276L848,279L846,279L841,274L843,274L842,271L846,271L840,268L841,266L842,266L841,264L839,266L839,262L841,263L842,260L839,259L840,255L842,253L843,249L841,250L842,252L839,254L837,254L838,257L836,259L833,258L837,260L838,263L836,269L837,270L838,274L841,277L840,279L843,282L844,284L841,283L838,281L835,282L831,280L830,278L827,280L825,278L827,274L828,272L828,270L830,267L827,265L826,267L822,265L818,264L819,262L817,260L814,260L813,258L811,256L811,254L808,255L805,253L803,255L802,255L800,258L797,259L794,257L792,262L790,261L787,266L784,269Z","x":832,"y":263},{"c":"MI","d":"M677,131L682,132L680,133ZM663,133L663,133L663,133ZM662,139L663,135L664,135L665,138ZM661,136L661,136L661,136ZM659,142L659,142L659,142ZM657,150L658,150L658,151ZM655,153L655,153L655,153ZM646,140L646,140L646,140ZM652,228L655,224L657,219L659,216L660,210L660,205L659,198L656,191L652,184L654,180L652,175L653,173L655,168L655,163L655,160L657,159L657,155L659,153L661,154L664,148L665,151L664,156L665,157L666,152L666,158L668,153L667,146L670,143L674,142L672,141L670,138L673,134L675,133L681,135L685,135L687,138L690,138L692,139L695,140L697,140L701,147L699,146L699,149L701,150L702,154L702,157L702,162L699,166L699,169L698,171L695,171L694,173L694,177L695,179L699,180L701,177L702,173L703,174L705,171L710,168L713,169L715,172L716,177L718,181L719,186L722,191L721,200L719,202L718,200L719,199L716,199L717,201L715,203L715,207L713,208L712,210L713,213L712,215L710,217L708,222L686,225L686,224L669,226ZM601,92L602,91L610,86L614,84L610,89L605,91L607,92L603,93ZM585,123L591,120L594,117L597,116L601,116L603,114L605,112L607,112L608,109L613,106L615,103L619,101L624,100L626,101L622,102L618,108L615,112L615,115L616,117L619,112L620,113L624,112L628,114L633,121L637,121L638,120L640,121L644,121L643,119L645,121L647,118L652,115L656,114L662,114L665,112L670,111L669,113L670,118L673,118L676,117L676,118L678,117L679,116L683,115L684,121L682,123L686,124L687,126L690,126L690,124L693,124L695,126L694,128L689,127L685,127L681,129L676,127L675,129L676,131L674,131L671,128L666,127L663,127L661,130L657,131L657,132L653,131L651,133L650,135L648,137L645,139L646,136L648,134L644,135L643,138L641,138L640,136L639,136L640,138L638,140L634,149L632,152L632,153L630,151L631,148L627,147L628,144L628,143L628,140L625,138L622,137L623,135L618,134L616,133L614,134L612,134L607,131L590,128L588,124Z","x":670,"y":167},{"c":"MS","d":"M644,493L644,493L644,493ZM639,493L639,493L639,493ZM635,494L635,494L635,494ZM632,494L632,494L632,494ZM589,433L590,432L589,431L591,430L589,425L588,423L588,422L588,420L589,420L587,418L590,418L589,415L592,415L590,413L591,412L590,411L593,409L592,408L594,407L594,404L596,403L595,402L599,400L599,397L598,396L600,394L598,393L601,392L600,389L601,391L604,389L603,387L619,386L642,384L644,386L643,413L642,444L642,455L646,489L644,491L642,490L640,491L636,490L633,491L627,494L625,495L622,493L621,489L619,487L618,485L619,477L606,478L583,479L584,478L583,476L583,475L582,473L585,473L583,470L585,470L584,467L586,466L586,463L589,461L587,461L587,460L589,459L590,457L592,455L593,453L590,453L590,451L593,450L595,448L594,448L593,446L591,445L593,442L591,443L590,441L592,439L590,439L590,437L591,436L591,434L590,435L589,435Z","x":618,"y":437},{"c":"MT","d":"M198,39L210,42L233,46L265,52L285,55L303,57L326,60L340,62L364,65L377,66L375,88L371,134L369,156L369,156L339,153L339,153L298,148L289,147L263,143L258,142L256,154L254,151L253,148L250,148L249,150L250,151L246,150L244,151L243,150L239,150L237,148L235,151L233,150L228,149L227,152L225,149L225,147L224,142L222,140L221,141L219,139L220,134L219,132L217,127L216,123L217,121L215,118L212,121L210,121L208,123L207,120L205,120L206,117L206,115L207,113L209,114L209,111L208,109L208,106L209,106L211,102L213,96L209,96L208,93L205,90L205,88L204,87L203,85L202,82L201,80L198,78L198,77L195,74L197,74L196,72L197,71L197,69L196,67L193,62Z","x":287,"y":100},{"c":"NH","d":"M886,111L887,105L888,103L891,104L891,102L895,114L905,145L907,147L908,149L910,150L909,155L906,156L904,158L903,161L884,165L882,163L882,160L882,158L881,146L881,143L882,141L882,139L883,133L882,129L882,128L885,126L888,122L888,119L886,117L887,113Z","x":893,"y":140},{"c":"NY","d":"M899,196L899,196L899,196ZM897,198L897,198L897,198ZM869,217L868,220L867,221L867,218ZM816,154L816,154L816,154ZM814,154L814,154L814,154ZM768,200L772,196L773,194L776,192L778,189L780,186L778,182L777,182L775,176L784,172L792,170L796,170L800,172L802,171L806,169L809,169L813,167L814,165L817,162L819,161L819,158L818,155L817,154L819,152L818,151L815,150L815,146L817,144L820,141L822,138L825,132L829,128L832,124L834,123L837,123L845,121L858,118L858,122L859,122L859,127L861,129L862,134L861,136L861,140L864,145L864,149L866,148L867,150L870,166L871,168L871,183L871,184L874,201L876,203L872,206L874,208L873,210L874,211L877,208L882,208L883,207L889,205L891,204L895,200L896,199L896,201L898,201L900,202L903,199L896,206L886,213L878,217L874,218L872,219L870,219L869,216L870,209L862,207L855,204L854,203L850,202L848,200L847,197L845,194L843,195L841,192L825,196L800,201L783,204L769,206Z","x":834,"y":172},{"c":"OH","d":"M721,223L721,223L721,223ZM719,222L719,222L719,222ZM686,225L708,222L715,224L718,225L719,224L723,227L726,227L733,223L738,223L742,218L748,213L750,212L756,209L761,239L759,241L760,243L761,247L759,252L760,256L758,260L759,263L758,263L754,269L752,271L750,269L748,271L748,273L746,273L745,278L746,281L744,283L743,280L741,280L740,281L740,284L739,285L740,290L738,290L738,293L734,295L733,295L731,292L728,292L727,288L725,289L723,292L721,292L716,291L714,293L712,292L710,290L704,290L703,288L701,285L699,283L696,285L694,283L693,284L688,247Z","x":724,"y":253},{"c":"OR","d":"M71,70L72,72L74,74L77,74L80,77L80,80L79,87L80,88L86,91L89,91L94,90L98,91L103,93L103,95L105,94L108,95L112,94L114,95L118,96L123,95L127,95L129,94L131,95L136,96L139,95L171,102L172,107L175,109L176,112L171,118L169,122L167,124L167,126L164,129L162,130L157,137L158,140L161,141L162,143L160,144L160,146L158,150L149,191L122,185L100,179L84,175L62,168L46,164L33,160L31,157L31,153L32,149L34,146L34,145L33,142L33,140L35,137L38,131L43,126L45,121L53,103L54,99L57,92L61,81L61,79L62,75L64,74L64,69L65,71L68,71Z","x":103,"y":134},{"c":"TN","d":"M612,363L614,360L612,358L615,357L614,356L615,354L615,352L616,351L617,351L619,351L641,350L641,345L645,345L645,346L672,343L681,343L687,342L692,341L704,341L720,339L720,339L727,338L751,335L751,334L756,333L756,334L755,338L752,341L751,346L749,346L747,345L744,347L743,349L741,351L740,348L738,350L737,352L735,356L733,356L730,358L729,359L726,362L721,363L717,366L717,369L716,370L713,371L713,377L689,380L666,382L642,384L642,384L619,386L603,387L605,386L605,384L607,383L605,381L607,378L605,378L606,376L608,376L607,374L609,374L608,373L610,372L608,369L613,367L611,366L614,365Z","x":674,"y":361},{"c":"UT","d":"M198,201L200,202L228,206L247,210L244,232L253,234L277,237L271,280L268,299L268,302L265,328L239,324L203,318L176,313L176,311Z","x":227,"y":269},{"c":"VA","d":"M855,284L856,283L863,280L861,284L860,285L858,288L859,292L857,301L855,304L853,301L853,292L856,286L854,285ZM850,285L849,285L850,285ZM747,313L747,315L750,319L753,320L755,320L758,316L761,318L767,315L767,313L769,314L773,310L774,312L777,309L776,308L778,306L776,305L777,302L780,297L780,294L784,287L784,283L786,283L787,285L790,286L792,283L794,275L797,277L797,274L799,273L803,266L802,264L803,262L803,259L813,265L814,260L817,260L819,262L818,264L822,265L826,267L828,270L828,272L827,274L825,275L825,279L826,281L830,279L832,283L834,283L838,283L840,285L846,287L845,289L846,293L845,294L842,294L840,291L838,290L835,288L838,291L840,292L842,295L846,295L848,299L848,300L845,299L845,300L847,302L844,303L846,303L849,305L849,307L847,309L843,306L842,304L840,305L838,304L837,305L841,306L841,304L843,308L846,309L846,310L849,310L849,308L855,308L859,316L842,319L840,320L812,326L794,329L780,331L756,334L756,333L751,334L751,335L727,338L720,339L722,337L724,337L729,334L730,332L733,330L733,328L735,326L735,325L738,322L741,320Z","x":803,"y":304},{"c":"WA","d":"M93,51L95,48L94,52ZM99,25L99,25L99,25ZM99,20L99,20L99,20ZM98,23L98,23L98,23ZM95,31L99,28L99,31L98,30L96,32L97,33L97,37L98,35L100,37L99,39L98,39L98,37L96,36L97,33ZM96,18L96,18L96,18ZM94,20L94,20L94,20ZM95,13L95,13L95,13ZM91,21L93,21L96,20L98,22L96,27L92,24ZM91,19L91,19L91,19ZM184,36L178,59L171,92L170,94L171,98L170,100L171,102L139,95L136,96L131,95L129,94L127,95L123,95L118,96L114,95L112,94L108,95L105,94L103,95L103,93L98,91L94,90L89,91L86,91L80,88L79,87L80,80L80,77L77,74L74,74L72,72L71,70L69,69L66,69L64,67L64,65L66,60L66,61L65,66L66,66L66,63L68,63L67,60L70,59L67,59L66,57L67,55L71,54L67,51L67,45L67,43L68,34L66,30L65,28L66,23L68,21L67,19L70,20L72,23L74,24L77,27L81,28L82,29L87,31L89,31L90,33L95,33L94,35L95,38L92,41L90,42L85,46L84,48L88,44L92,43L92,42L97,39L95,46L94,47L92,52L89,55L88,51L88,55L89,56L93,52L94,53L96,52L96,47L98,42L102,38L100,35L101,33L98,34L99,32L101,31L100,27L98,28L98,25L101,27L101,25L102,24L102,23L102,21L99,19L99,15L100,14L115,19L140,25L166,32Z","x":124,"y":59},{"c":"WI","d":"M642,146L642,145L644,145L643,147ZM636,150L636,150L636,150ZM584,113L584,113L584,113ZM583,116L583,116L583,116ZM581,115L581,115L581,115ZM580,117L580,117L580,117ZM580,114L580,114L580,114ZM579,113L581,112L583,113L581,115ZM579,118L582,116L581,118ZM576,114L576,114L576,114ZM560,121L563,121L568,120L573,117L573,117L576,115L578,115L580,116L578,119L578,120L577,123L580,122L580,120L583,122L585,123L588,124L590,128L607,131L612,134L614,134L616,133L618,134L623,135L622,137L625,138L628,140L628,143L628,144L627,147L631,148L630,151L632,153L632,156L629,157L629,158L627,162L626,166L628,166L631,163L633,159L636,157L638,153L638,151L640,150L640,149L642,148L641,152L639,155L639,157L638,159L635,165L635,170L635,174L633,176L632,181L633,185L632,188L631,195L632,199L632,201L634,206L634,210L634,212L618,214L587,215L586,212L582,212L580,211L578,207L577,202L579,199L577,196L576,193L575,191L576,187L572,182L570,182L565,178L564,175L559,173L557,170L554,170L549,166L550,162L549,158L550,158L550,154L551,150L549,147L548,147L548,144L551,139L556,137L556,136L556,122L559,120Z","x":595,"y":167},{"c":"NE","d":"M365,201L391,203L404,204L434,205L457,206L457,207L466,212L467,210L470,210L476,210L479,212L482,212L487,215L486,216L488,218L491,218L492,219L491,221L493,224L494,230L496,230L495,232L497,234L496,236L496,240L499,242L499,245L501,255L500,259L502,262L505,268L507,270L508,272L508,274L510,275L495,275L465,275L443,274L422,273L394,272L395,249L382,248L361,247Z","x":434,"y":239},{"c":"SC","d":"M735,374L742,371L746,368L749,367L772,365L772,367L774,365L777,369L778,371L798,368L823,386L820,388L816,392L813,399L814,404L811,406L811,408L808,408L806,410L807,411L803,415L801,419L797,421L795,423L792,424L793,425L793,427L790,429L788,427L787,428L790,430L786,433L786,435L781,433L780,431L781,430L777,424L774,423L773,418L771,416L771,414L766,412L764,410L764,409L762,408L762,406L759,403L756,402L755,400L748,396L747,394L744,391L744,389L741,385L738,385L735,383L732,382L732,379L735,375Z","x":779,"y":392},{"c":"ID","d":"M171,102L170,100L171,98L170,94L171,92L178,59L184,36L198,39L193,62L196,67L197,69L197,71L196,72L197,74L195,74L198,77L198,78L201,80L202,82L203,85L204,87L205,88L205,90L208,93L209,96L213,96L211,102L209,106L208,106L208,109L209,111L209,114L207,113L206,115L206,117L205,120L207,120L208,123L210,121L212,121L215,118L217,121L216,123L217,127L219,132L220,134L219,139L221,141L222,140L224,142L225,147L225,149L227,152L228,149L233,150L235,151L237,148L239,150L243,150L244,151L246,150L250,151L249,150L250,148L253,148L254,151L256,154L250,193L247,210L228,206L200,202L198,201L181,198L160,193L149,191L158,150L160,146L160,144L162,143L161,141L158,140L157,137L162,130L164,129L167,126L167,124L169,122L171,118L176,112L175,109L172,107Z","x":199,"y":147},{"c":"NV","d":"M100,179L122,185L149,191L160,193L181,198L198,201L176,311L176,313L173,331L170,335L168,335L167,331L163,331L160,331L159,335L160,336L159,338L159,342L158,345L159,349L159,353L157,354L157,356L132,319L83,246L89,224Z","x":142,"y":252},{"c":"VT","d":"M858,118L865,116L874,114L886,111L887,113L886,117L888,119L888,122L885,126L882,128L882,129L883,133L882,139L882,141L881,143L881,146L882,158L882,160L882,163L884,165L871,168L870,166L867,150L866,148L864,149L864,145L861,140L861,136L862,134L861,129L859,127L859,122L858,122Z","x":873,"y":136},{"c":"LA","d":"M638,497L638,497L638,497ZM629,498L631,495L631,497L632,498ZM624,510L624,510L624,510ZM610,521L610,521L610,521ZM606,521L606,521L606,521ZM602,522L602,522L602,522ZM577,511L580,511L583,512L580,514ZM535,435L569,434L589,433L589,435L590,435L591,434L591,436L590,437L590,439L592,439L590,441L591,443L593,442L591,445L593,446L594,448L595,448L593,450L590,451L590,453L593,453L592,455L590,457L589,459L587,460L587,461L589,461L586,463L586,466L584,467L585,470L583,470L585,473L582,473L583,475L583,476L584,478L583,479L606,478L619,477L618,485L619,487L621,489L622,493L625,495L623,496L621,498L619,499L619,501L621,501L622,503L624,502L624,500L626,498L628,498L627,499L628,501L630,499L631,502L628,503L627,507L625,506L625,507L623,508L624,509L623,510L625,511L626,513L630,513L632,515L632,514L635,518L634,522L632,520L629,524L631,519L629,519L627,517L624,516L620,515L613,521L610,516L608,515L607,517L605,517L605,518L601,523L598,520L595,520L592,519L590,517L592,516L595,518L594,516L592,514L590,515L590,513L588,514L586,512L586,510L584,510L584,508L582,508L579,509L580,506L579,506L574,508L573,508L575,511L571,513L565,512L558,509L554,508L548,508L542,509L541,510L539,507L540,506L541,504L543,502L543,497L542,496L543,493L542,490L544,487L546,484L546,480L545,476L544,474L542,469L540,467L540,463L538,460L535,458Z","x":576,"y":478},{"c":"RI","d":"M911,183L912,183L913,186L912,188L910,184L911,187L909,188L910,184ZM908,188L908,188L908,188ZM907,196L907,196L907,196ZM902,193L902,191L901,186L899,178L905,176L906,179L908,181L910,182L907,181L908,188L908,191Z","x":905,"y":184}],"n":"M648,492L648,492M104,552L104,552M99,570L103,565L105,569L103,569L101,570L99,570M95,582L95,582M93,575L96,573L97,573L99,571L103,571L103,574L105,573L99,578L98,579L97,577L95,580L93,575M93,583L93,583M89,588L89,588M72,594L72,594M71,592L71,592M68,593L69,591L70,592L68,593M66,590L67,590L67,592L66,590M68,564L68,564M61,591L61,591M58,592L58,592M66,524L66,524M56,596L56,596M45,597L45,597M43,595L43,595M41,596L41,596M44,547L46,548L50,547L51,549L51,551L48,552L44,549L44,547M31,601L34,600L36,598L36,597L38,596L40,598L37,601L32,602L31,601M51,505L59,501L64,500L66,500L65,504L71,505L73,503L74,504L72,501L70,498L71,498L71,500L73,498L70,497L67,496L66,492L63,488L59,484L61,483L62,481L67,481L70,479L72,475L75,471L78,471L82,468L87,468L89,465L93,466L91,468L92,469L94,466L95,469L99,468L101,469L101,470L104,472L109,471L114,473L119,473L123,474L126,472L132,474L133,474L147,547L151,547L152,546L155,545L155,547L162,552L164,555L167,552L167,548L169,546L172,547L176,552L181,554L182,556L190,562L190,564L192,566L193,565L200,567L201,569L203,573L201,578L200,578L198,575L199,574L198,572L198,575L193,574L192,571L191,572L189,570L190,568L188,565L186,564L183,563L182,560L178,557L176,557L171,551L175,558L173,557L170,557L168,559L162,556L160,554L153,552L154,551L153,549L151,551L149,551L146,550L141,550L135,552L135,550L132,550L132,548L131,550L129,549L125,551L126,549L128,548L127,547L126,547L124,545L122,546L119,547L120,550L120,552L121,553L119,554L114,554L113,557L111,559L110,557L109,560L106,561L105,560L109,556L107,557L105,556L107,552L107,549L111,546L112,547L113,546L112,544L109,544L106,546L102,553L102,554L100,557L96,560L96,562L98,562L100,564L96,567L96,569L92,571L91,573L90,572L89,574L88,574L86,576L86,578L83,580L82,579L80,582L77,583L79,584L77,586L71,586L67,589L66,588L63,589L63,588L61,591L60,591L56,592L53,594L50,594L47,595L46,593L49,592L52,591L57,590L60,587L62,585L66,585L67,585L69,583L71,581L75,579L78,576L81,573L82,566L84,564L84,563L80,565L78,563L77,564L77,566L76,566L73,562L72,563L71,561L65,564L64,563L65,561L64,558L66,557L64,551L63,552L58,553L57,553L57,551L53,547L54,545L54,541L53,542L51,538L53,536L54,534L57,530L59,527L61,526L64,528L67,525L71,525L73,523L73,519L72,517L74,516L73,514L68,517L61,515L59,516L55,514L54,509L56,509L52,507L51,505M25,603L29,599L31,599L31,600L28,602L25,603M28,573L28,573M20,602L20,602M27,568L27,568M16,603L16,603M34,518L36,517L38,518L39,518L42,521L45,522L42,523L41,524L39,521L37,519L35,520L34,518M7,603L7,603M23,540L23,540M0,602L5,604L3,604L0,602M-6,601L-1,601L-2,603L-6,601M-10,599L-10,599M-11,601L-11,601M-15,601L-13,599L-11,601L-15,601M-18,600L-18,600M-20,597L-20,597M-30,593L-30,593M-35,593L-35,593M-41,589L-41,589M-56,577L-56,577M-58,571L-55,572L-54,574L-56,573L-58,571M197,577L197,577M196,577L196,577M195,575L195,575M188,570L188,570M187,569L187,569M186,577L188,576L187,578L186,577M185,573L185,570L187,570L190,572L194,576L196,580L192,579L190,578L192,581L190,580L189,576L186,574L185,573M183,574L183,574M180,567L182,565L185,564L189,567L186,569L184,569L184,572L183,572L180,567M175,556L176,557L178,557L180,559L179,560L181,563L180,566L179,563L175,556M174,565L175,563L177,563L180,568L181,573L176,568L175,565L174,565M173,566L175,566L174,568L173,566M169,561L169,560L172,558L175,559L177,563L174,562L174,565L171,564L169,561M121,555L124,550L124,551L121,555M120,551L122,549L121,552L120,551M815,594L815,594M813,596L813,596M807,599L811,597L812,597L808,599L807,599M794,604L795,602L800,598L804,599L805,600L802,601L796,604L794,604M790,605L790,605M786,605L786,605M777,558L777,558M770,606L770,606M720,495L720,495M940,115L940,115M938,116L938,114L940,116L938,116M936,112L936,112M932,116L932,116M934,125L934,125M931,119L933,117L934,119L932,121L931,119M930,116L930,113L931,116L930,116M928,187L931,186L932,184L933,186L931,188L928,187M918,188L919,188L921,184L925,187L918,188M864,329L866,329L867,331L864,329M863,350L864,348L871,343L871,336L871,344L867,346L863,350M77,374L81,377L81,380L79,378L79,376L77,374M75,384L78,390L76,389L75,384M65,358L65,358M58,374L58,374M57,355L59,356L63,359L60,359L57,357L57,355M50,355L54,355L55,358L52,358L50,355M47,353L49,353L49,354L47,353M305,584L308,582L310,578L309,575L310,573L315,576L318,576L322,578L326,582L326,584L328,584L328,587L332,589L332,590L329,593L325,595L322,595L317,598L315,602L314,603L309,600L308,599L309,594L308,590L305,584M292,558L292,556L294,555L296,559L300,557L306,561L307,562L305,564L299,566L297,565L297,561L293,560L292,558M292,567L294,565L295,567L292,567M284,558L287,558L289,560L286,562L284,558M279,554L280,551L288,552L291,553L289,555L288,555L283,554L279,554M258,543L261,543L265,540L267,544L267,546L270,547L271,549L268,550L266,549L262,549L258,543M226,533L227,530L231,528L235,529L237,530L236,534L233,536L230,536L226,533M216,537L220,533L220,536L218,536L217,538L216,537M847,281L848,280L849,282L847,281M677,131L682,132L680,133L677,131M663,133L663,133M662,139L663,135L664,135L665,138L662,139M661,136L661,136M659,142L659,142M657,150L658,150L658,151L657,150M655,153L655,153M646,140L646,140M601,92L602,91L610,86L614,84L610,89L605,91L607,92L603,93L601,92M644,493L644,493M639,493L639,493M635,494L635,494M632,494L632,494M899,196L899,196M897,198L897,198M816,154L816,154M814,154L814,154M721,223L721,223M719,222L719,222M849,285L850,285L849,285M93,51L95,48L94,52L93,51M99,25L99,25M99,20L99,20M98,23L98,23M95,31L99,28L99,31L98,30L96,32L97,33L97,37L98,35L100,37L99,39L98,39L98,37L96,36L97,33L95,31M96,18L96,18M94,20L94,20M95,13L95,13M91,21L93,21L96,20L98,22L96,27L92,24L91,21M91,19L91,19M642,146L642,145L644,145L643,147L642,146M636,150L636,150M584,113L584,113M583,116L583,116M581,115L581,115M580,117L580,117M580,114L580,114M579,113L581,112L583,113L581,115L579,113M579,118L582,116L581,118L579,118M576,114L576,114M638,497L638,497M629,498L631,495L631,497L632,498L629,498M624,510L624,510M610,521L610,521M606,521L606,521M602,522L602,522M577,511L580,511L583,512L580,514L577,511M908,188L908,188M907,196L907,196M902,193L900,193L893,197L887,198L885,199L885,198L882,203L878,205L874,208L873,210L874,211L877,208L882,208L883,207L889,205L891,204L895,200L896,199L896,201L898,201L900,202L903,199L896,206L886,213L878,217L874,218L872,219L870,219L869,216L869,217L868,220L867,221L867,222L871,222L872,225L872,229L873,237L871,245L870,247L867,251L865,257L863,259L863,254L860,253L859,254L852,250L850,250L849,246L849,246L850,244L848,247L849,249L853,252L854,255L855,258L857,261L860,263L861,263L864,270L863,279L863,280L861,284L860,285L858,288L859,292L857,301L855,304L853,301L853,292L856,286L854,285L855,284L853,284L852,285L851,282L850,280L851,279L849,278L848,276L848,279L846,279L841,274L843,274L842,271L846,271L840,268L841,266L842,266L841,264L839,266L839,262L841,263L842,260L839,259L840,255L842,253L843,249L841,250L842,252L839,254L837,254L838,257L836,259L833,258L837,260L838,263L836,269L837,270L838,274L841,277L840,279L843,282L844,284L841,283L838,281L835,282L831,280L830,278L827,280L825,278L827,274L825,275L825,279L826,281L830,279L832,283L834,283L838,283L840,285L846,287L845,289L846,293L845,294L842,294L840,291L838,290L835,288L838,291L840,292L842,295L846,295L848,299L848,300L845,299L845,300L847,302L844,303L846,303L849,305L849,307L847,309L843,306L842,304L840,305L838,304L837,305L841,306L841,304L843,308L846,309L846,310L849,310L849,308L855,308L859,316L861,320L864,325L868,332L866,328L864,328L860,319L859,318L856,317L859,320L862,325L861,325L859,323L858,325L854,323L857,326L855,327L850,326L853,328L851,330L849,331L847,330L845,328L847,333L852,331L853,331L856,330L859,330L859,332L860,337L860,336L860,330L863,329L866,335L865,337L863,338L861,342L860,344L853,345L851,342L850,342L852,345L848,345L843,343L846,345L850,346L853,346L854,347L853,352L850,355L846,353L846,355L850,356L852,354L855,353L855,351L857,353L859,352L859,354L857,356L856,360L862,350L863,350L858,357L856,362L856,361L851,361L847,363L844,365L838,370L836,374L834,377L833,384L829,383L825,384L823,386L820,388L816,392L813,399L814,404L811,406L811,408L808,408L806,410L807,411L803,415L801,419L797,421L795,423L792,424L793,425L793,427L790,429L788,427L787,428L790,430L786,433L786,435L787,436L783,442L782,447L781,451L781,454L780,456L780,459L778,460L780,461L780,466L783,476L787,486L790,491L795,500L801,508L805,511L806,514L805,517L807,522L812,529L815,537L820,544L822,549L823,554L823,565L824,571L824,575L822,574L821,580L822,581L821,583L822,583L824,578L824,580L822,587L818,592L816,593L819,589L820,586L818,586L814,588L812,587L811,589L807,590L805,588L805,585L801,578L798,576L793,574L792,575L789,571L788,566L785,563L782,561L781,563L780,559L781,555L780,552L779,553L780,556L778,557L773,551L769,546L766,543L767,541L771,533L769,532L770,534L768,533L768,531L765,530L764,532L766,532L767,534L767,537L765,537L762,533L762,530L761,526L762,527L764,521L764,517L761,512L762,510L760,508L759,505L755,505L754,506L753,503L751,503L750,500L746,498L745,495L743,494L740,491L732,487L730,488L727,487L726,490L726,492L723,492L716,497L716,496L714,498L712,498L714,500L719,498L714,501L710,499L707,500L706,496L706,495L707,499L708,497L706,494L696,488L689,486L681,486L668,489L664,490L658,492L659,490L656,488L655,482L653,482L652,486L652,490L649,489L646,489L644,491L642,490L640,491L636,490L633,491L627,494L625,495L623,496L621,498L619,499L619,501L621,501L622,503L624,502L624,500L626,498L628,498L627,499L628,501L630,499L631,502L628,503L627,507L625,506L625,507L623,508L624,509L623,510L625,511L626,513L630,513L632,515L632,514L635,518L634,522L632,520L629,524L631,519L629,519L627,517L624,516L620,515L613,521L610,516L608,515L607,517L605,517L605,518L601,523L598,520L595,520L592,519L590,517L592,516L595,518L594,516L592,514L590,515L590,513L588,514L586,512L586,510L584,510L584,508L582,508L579,509L580,506L579,506L574,508L573,508L575,511L571,513L565,512L558,509L554,508L548,508L542,509L541,510L535,511L522,517L527,513L522,514L523,512L524,509L521,509L520,511L518,511L517,514L520,515L520,519L516,523L515,522L515,524L518,522L522,518L523,519L517,523L510,530L509,530L502,534L496,537L492,539L489,542L485,544L480,548L478,551L475,555L472,562L470,566L470,570L470,574L473,587L474,592L472,582L470,576L470,569L470,564L472,560L475,554L476,551L478,550L480,546L483,545L486,542L489,541L489,540L486,542L484,542L484,540L482,540L482,544L479,546L477,545L474,547L475,548L477,547L477,549L474,553L473,552L469,552L470,553L470,555L473,556L471,559L469,564L467,565L467,563L465,566L469,566L469,572L468,576L469,583L470,583L472,588L471,592L474,593L474,595L472,595L470,596L470,598L467,597L464,593L461,593L454,593L452,592L447,589L443,588L440,585L439,585L434,584L435,582L433,581L433,577L431,574L428,570L428,567L427,564L428,559L425,556L423,555L420,552L419,548L418,548L416,544L414,543L412,541L410,534L408,532L408,530L406,526L405,522L403,520L403,519L399,516L398,513L394,511L393,509L390,506L386,506L383,505L378,505L377,503L373,503L372,505L370,504L366,505L364,510L363,514L362,514L361,517L359,517L357,520L357,522L353,521L351,520L348,517L345,516L343,514L340,513L337,511L335,508L334,508L330,504L330,501L328,498L327,495L328,492L325,487L325,483L323,480L316,475L313,472L312,470L309,468L306,463L302,460L299,454L296,452L264,448L263,458L247,456L229,454L208,450L172,429L142,412L143,409L145,407L99,402L100,400L98,398L99,394L99,388L97,382L92,376L90,374L88,371L86,370L85,371L82,369L83,367L82,362L78,361L76,362L70,357L69,354L65,349L59,348L55,345L49,344L49,342L46,340L48,338L49,335L48,333L50,328L48,327L46,325L47,321L45,319L43,315L42,313L41,311L40,308L40,305L39,304L37,300L35,296L35,292L36,289L38,289L40,286L38,281L35,281L34,279L31,274L33,271L32,267L33,261L35,261L35,266L36,267L38,270L39,265L36,262L37,259L36,257L39,256L38,253L36,254L36,257L33,260L31,257L29,255L26,253L28,250L28,248L27,247L27,243L24,240L23,236L21,232L20,229L22,227L21,219L24,216L24,209L22,202L18,197L19,193L21,190L27,184L28,182L28,179L29,177L31,173L32,166L30,164L33,160L31,157L31,153L32,149L34,146L34,145L33,142L33,140L35,137L38,131L43,126L45,121L53,103L54,99L57,92L61,81L61,79L62,75L64,74L64,69L65,71L68,71L71,70L69,69L66,69L64,67L64,65L66,60L66,61L65,66L66,66L66,63L68,63L67,60L70,59L67,59L66,57L67,55L71,54L67,51L67,45L67,43L68,34L66,30L65,28L66,23L68,21L67,19L70,20L72,23L74,24L77,27L81,28L82,29L87,31L89,31L90,33L95,33L94,35L95,38L92,41L90,42L85,46L84,48L88,44L92,43L92,42L97,39L95,46L94,47L92,52L89,55L88,51L88,55L89,56L93,52L94,53L96,52L96,47L98,42L102,38L100,35L101,33L98,34L99,32L101,31L100,27L98,28L98,25L101,27L101,25L102,24L102,23L102,21L99,19L99,15L100,14L115,19L140,25L166,32L184,36L198,39L210,42L233,46L265,52L285,55L303,57L326,60L340,62L364,65L377,66L404,68L421,69L445,70L469,71L479,71L492,71L511,71L511,62L514,62L516,64L518,73L518,76L520,77L524,77L525,78L531,79L532,81L536,80L536,79L540,78L544,79L548,80L549,80L548,82L551,82L553,87L555,87L555,84L558,84L559,86L561,87L563,87L566,91L571,90L575,86L577,86L578,89L588,88L592,91L594,90L596,91L590,94L582,98L579,99L573,106L570,109L565,114L559,119L560,121L563,121L568,120L573,117L573,117L576,115L578,115L580,116L578,119L578,120L577,123L580,122L580,120L583,122L585,123L591,120L594,117L597,116L601,116L603,114L605,112L607,112L608,109L613,106L615,103L619,101L624,100L626,101L622,102L618,108L615,112L615,115L616,117L619,112L620,113L624,112L628,114L633,121L637,121L638,120L640,121L644,121L643,119L645,121L647,118L652,115L656,114L662,114L665,112L670,111L669,113L670,118L673,118L676,117L676,118L678,117L679,116L683,115L684,121L682,123L686,124L687,126L690,126L690,124L693,124L695,126L694,128L689,127L685,127L681,129L676,127L675,129L676,131L674,131L671,128L666,127L663,127L661,130L657,131L657,132L653,131L651,133L650,135L648,137L645,139L646,136L648,134L644,135L643,138L641,138L640,136L639,136L640,138L638,140L634,149L632,152L632,153L632,156L629,157L629,158L627,162L626,166L628,166L631,163L633,159L636,157L638,153L638,151L640,150L640,149L642,148L641,152L639,155L639,157L638,159L635,165L635,170L635,174L633,176L632,181L633,185L632,188L631,195L632,199L632,201L634,206L634,210L634,212L634,217L635,219L637,222L639,227L640,230L642,231L645,231L647,231L652,228L655,224L657,219L659,216L660,210L660,205L659,198L656,191L652,184L654,180L652,175L653,173L655,168L655,163L655,160L657,159L657,155L659,153L661,154L664,148L665,151L664,156L665,157L666,152L666,158L668,153L667,146L670,143L674,142L672,141L670,138L673,134L675,133L681,135L685,135L687,138L690,138L692,139L695,140L697,140L701,147L699,146L699,149L701,150L702,154L702,157L702,162L699,166L699,169L698,171L695,171L694,173L694,177L695,179L699,180L701,177L702,173L703,174L705,171L710,168L713,169L715,172L716,177L718,181L719,186L722,191L721,200L719,202L718,200L719,199L716,199L717,201L715,203L715,207L713,208L712,210L713,213L712,215L710,217L708,222L715,224L718,225L719,224L723,227L726,227L733,223L738,223L742,218L748,213L750,212L756,209L759,207L768,200L772,196L773,194L776,192L778,189L780,186L778,182L777,182L775,176L784,172L792,170L796,170L800,172L802,171L806,169L809,169L813,167L814,165L817,162L819,161L819,158L818,155L817,154L819,152L818,151L815,150L815,146L817,144L820,141L822,138L825,132L829,128L832,124L834,123L837,123L845,121L858,118L865,116L874,114L886,111L887,105L888,103L891,104L891,102L892,101L895,103L894,99L897,99L895,96L897,92L899,90L898,89L900,86L898,83L899,80L898,80L898,76L900,74L899,67L906,48L909,48L910,51L912,52L917,49L920,48L920,46L923,46L930,50L937,74L939,80L942,81L945,80L946,82L945,83L946,84L946,87L949,90L950,88L952,88L957,95L955,99L954,100L953,99L950,106L949,104L947,104L946,107L944,108L944,110L941,110L941,113L939,114L937,112L939,110L937,110L935,111L937,115L936,117L937,118L937,120L936,118L934,116L935,115L932,114L931,110L930,112L929,113L930,114L929,120L930,123L928,125L926,126L924,128L921,129L920,132L918,131L917,133L915,134L915,137L913,138L913,142L911,143L911,146L910,150L909,155L911,159L914,158L913,160L911,162L911,163L909,166L910,169L912,167L914,168L917,171L917,174L919,174L920,177L922,178L925,177L929,175L928,172L927,173L926,170L928,171L931,177L926,180L925,180L923,182L920,183L919,180L918,179L918,182L915,183L915,185L913,186L912,188L910,184L911,187L909,188L910,184L911,183L910,182L907,181L908,188L908,191L902,193"};
+/* ================== helpers ================== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let LANG=LS.get('adt-lang','zh');
+const M=(zh,en)=>({zh,en});
+const tx=m=>m==null?'':(typeof m==='string'?m:(m[LANG]??m.zh));
+let RUN=0;
+function wait(ms){const run=RUN;return new Promise((res,rej)=>setTimeout(()=>run===RUN?res():rej(new Error('aborted')),window.__FAST?0:ms))}
+function fmt(k){const s=k<0?'−':'';k=Math.abs(Math.round(k));if(k>=1000)return s+'$'+(k/1000).toFixed(2).replace(/\.?0+$/,'')+'M';return s+'$'+k+'K'}
+const rnd=n=>Math.floor(Math.random()*n);
+const pick=a=>a[rnd(a.length)];
+
+const UI={
+zh:{title:'美国梦大亨',rules:'规则',newGame:'新游戏',log:'游戏记录',players:'玩家人数',worth:'资产',props:'地产',human:'真人',easy:'电脑·简单',normal:'电脑·普通',hard:'电脑·困难',startCash:'起始资金',endMode:'结束方式',modeRounds:'固定回合',modeFirst:'第一人破产',modeLast:'玩到最后一人',rounds:'回合数',start:'开始游戏',seat:'玩家 {n}',namePh:'名字（可修改）',roundN:'第 {n} 轮',roundNM:'第 {n} / {m} 轮',ok:'知道了',skip:'放弃',close:'关闭',aiThinking:'🤖 电脑思考中…',bankrupt:'破产',inJail:'🔒 坐牢',rentFree:'🛡 免租',jailCard:'🔓 出狱卡',skipTurn:'💤 住院',wheelReady:'🎡 可转盘',boom:'📈 房市暴涨',tech:'💻 科技热潮',infl:'🏷 通胀',yes:'确定',no:'取消',newConfirm:'放弃当前这局，重新设置？',gameOver:'游戏结束',playAgain:'再来一局',setupAgain:'重新设置',titleRent:'收租王',titleCasino:'赌神',titleLoser:'赌场冤大头',titleLand:'地产大亨',price:'价格',owner:'拥有者',none:'无',upCost:'升级费用',setBonus:'集齐同色 3 州，所有等级租金 ×2',hint:'推荐电脑或平板横屏游玩。点击格子或地图上的州可以查看地契。空格键 = 主按钮。',wins:'🏆 {name} 获胜！',spin:'转！',wheelTitle:'逆天改命转盘',curRent:'当前租金',you:'真人',turn:'回合中'},
+en:{title:'American Dream Tycoon',rules:'Rules',newGame:'New game',log:'Game log',players:'Players',worth:'Worth',props:'Props',human:'Human',easy:'AI · Easy',normal:'AI · Normal',hard:'AI · Hard',startCash:'Starting cash',endMode:'Game ends',modeRounds:'Round limit',modeFirst:'First bankruptcy',modeLast:'Last one standing',rounds:'Rounds',start:'Start game',seat:'Player {n}',namePh:'Name (editable)',roundN:'Round {n}',roundNM:'Round {n} / {m}',ok:'Got it',skip:'Skip',close:'Close',aiThinking:'🤖 AI is thinking…',bankrupt:'Bankrupt',inJail:'🔒 Jail',rentFree:'🛡 Rent-free',jailCard:'🔓 Jail card',skipTurn:'💤 Hospital',wheelReady:'🎡 Wheel ready',boom:'📈 Housing boom',tech:'💻 Tech boom',infl:'🏷 Inflation',yes:'Yes',no:'Cancel',newConfirm:'Quit this game and set up a new one?',gameOver:'Game over',playAgain:'Play again',setupAgain:'New setup',titleRent:'Rent King',titleCasino:'High Roller',titleLoser:'Casino Sucker',titleLand:'Land Baron',price:'Price',owner:'Owner',none:'None',upCost:'Upgrade cost',setBonus:'Own all 3 states of a color: every rent x2',hint:'Best on a computer or tablet in landscape. Tap a tile or a state on the map to see its deed. Space = main button.',wins:'🏆 {name} wins!',spin:'Spin!',wheelTitle:'Comeback Wheel',curRent:'Current rent',you:'Human',turn:'Your turn'}
+};
+function T(k,p){let s=UI[LANG][k]??UI.zh[k]??k;if(p)for(const x in p)s=s.replaceAll('{'+x+'}',p[x]);return s}
+
+/* ================== characters (drawn in SVG) ================== */
+const OUT='#2b2140';
+const CHARS=[
+ {id:'tex',name:'Tex',color:'#f08a4b',title:M('德州牛仔','Texas Cowboy'),quote:M('“Yeehaw！这片地我全包了！”','“Yeehaw! I’ll take the whole ranch!”')},
+ {id:'sam',name:'Sam',color:'#5aa2f0',title:M('硅谷极客','Silicon Valley Geek'),quote:M('“数据说了：买！”','“The data says: buy.”')},
+ {id:'stella',name:'Stella',color:'#f06ba8',title:M('好莱坞明星','Hollywood Star'),quote:M('“这栋豪宅，适合拍我的综艺。”','“This mansion is perfect for my show.”')},
+ {id:'gold',name:'Mr. Gold',color:'#e8b62c',title:M('华尔街大亨','Wall Street Mogul'),quote:M('“现金为王，统统买下。”','“Cash is king. I’ll take it all.”')},
+ {id:'kai',name:'Kai',color:'#2bc4b2',title:M('夏威夷冲浪手','Hawaiian Surfer'),quote:M('“Aloha～ 海景房我收了！”','“Aloha! Ocean view, I’m in!”')},
+ {id:'rosa',name:'Rosa',color:'#9b72e8',title:M('金牌地产经纪','Star Realtor'),quote:M('“地段、地段、还是地段！”','“Location, location, location!”')},
+];
+const charOf=id=>CHARS.find(c=>c.id===id)||CHARS[0];
+function face(skin,{mouth='M44 55 Q50 60 56 55',eyes=true}={}){
+ return `<circle cx="29" cy="47" r="5" fill="${skin}" stroke="${OUT}" stroke-width="3"/><circle cx="71" cy="47" r="5" fill="${skin}" stroke="${OUT}" stroke-width="3"/>
+ <circle cx="50" cy="45" r="21" fill="${skin}" stroke="${OUT}" stroke-width="3"/>
+ ${eyes?`<ellipse cx="42" cy="46" rx="2.7" ry="3.5" fill="${OUT}"/><ellipse cx="58" cy="46" rx="2.7" ry="3.5" fill="${OUT}"/><circle cx="43" cy="44.6" r="1" fill="#fff"/><circle cx="59" cy="44.6" r="1" fill="#fff"/>`:''}
+ <circle cx="36.5" cy="53" r="3.2" fill="#ff8fa3" opacity=".55"/><circle cx="63.5" cy="53" r="3.2" fill="#ff8fa3" opacity=".55"/>
+ <path d="${mouth}" fill="none" stroke="${OUT}" stroke-width="2.6" stroke-linecap="round"/>`;
+}
+const body=(c,extra='')=>`<path d="M17 104 C19 78 33 68 50 68 C67 68 81 78 83 104Z" fill="${c}" stroke="${OUT}" stroke-width="3"/>${extra}`;
+const AV={
+ tex:()=>`${body('#d9534f',`<path d="M38 69 L50 82 L62 69Z" fill="#f6c945" stroke="${OUT}" stroke-width="2.5"/><path d="M30 80 L30 104 M70 80 L70 104" stroke="#a83a37" stroke-width="3"/>`)}
+  ${face('#f2c49b',{mouth:'M45 57 Q50 60 55 57'})}
+  <path d="M41 53 Q45.5 50.5 50 53 Q54.5 50.5 59 53 Q55 56.5 50 54.6 Q45 56.5 41 53Z" fill="#7a4520" stroke="${OUT}" stroke-width="1.5"/>
+  <path d="M32 32 Q33 12 50 14 Q67 12 68 32Z" fill="#8b5a2b" stroke="${OUT}" stroke-width="3"/>
+  <path d="M33 29 Q50 24 67 29" stroke="#3a2412" stroke-width="3.5" fill="none"/>
+  <path d="M15 34 Q22 26 33 30 Q50 34 67 30 Q78 26 85 34 Q78 40 50 37 Q22 40 15 34Z" fill="#a8703a" stroke="${OUT}" stroke-width="3"/>`,
+ sam:()=>`<path d="M24 62 Q20 26 50 22 Q80 26 76 62Z" fill="#46557a" stroke="${OUT}" stroke-width="3"/>
+  ${body('#5d6f99',`<path d="M44 70 L44 84 M56 70 L56 84" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><circle cx="44" cy="86" r="2" fill="#fff"/><circle cx="56" cy="86" r="2" fill="#fff"/>`)}
+  ${face('#f6d1b0',{mouth:'M45 56 Q50 59 55 56'})}
+  <path d="M29 42 Q27 21 50 21 Q73 21 71 42 Q66 31 59 35 Q54 27 47 34 Q39 29 33 37 Q31 39 29 42Z" fill="#2a1d14" stroke="${OUT}" stroke-width="3"/>
+  <circle cx="42" cy="46" r="7" fill="#fff" fill-opacity=".3" stroke="${OUT}" stroke-width="2.6"/><circle cx="58" cy="46" r="7" fill="#fff" fill-opacity=".3" stroke="${OUT}" stroke-width="2.6"/><path d="M49 46 L51 46" stroke="${OUT}" stroke-width="2.6"/>`,
+ stella:()=>`<path d="M26 48 Q22 17 50 17 Q78 17 74 48 Q80 74 67 80 L33 80 Q20 74 26 48Z" fill="#f7cd48" stroke="${OUT}" stroke-width="3"/>
+  ${body('#e23d5c',`<path d="M36 72 Q50 80 64 72" fill="none" stroke="#fff" stroke-width="2.5"/>`)}
+  ${face('#f9d5bd',{mouth:'M45 56 Q50 60 55 56',eyes:false})}
+  <path d="M45 56 Q50 61 55 56 Q50 58 45 56Z" fill="#e23d5c" stroke="#c42446" stroke-width="1.5"/>
+  <rect x="33.5" y="41" width="14" height="9.5" rx="4.5" fill="${OUT}"/><rect x="52.5" y="41" width="14" height="9.5" rx="4.5" fill="${OUT}"/><path d="M47 44 L53 44" stroke="${OUT}" stroke-width="2.5"/><path d="M36 43 L40 43" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M29 42 Q31 21 50 21 Q69 21 71 42 Q62 29 50 32 Q38 29 29 42Z" fill="#f7cd48" stroke="${OUT}" stroke-width="3"/>
+  <path d="M27 58 l2 4 4.5 .6 -3.3 3 .8 4.4 -4-2.1 -4 2.1 .8-4.4 -3.3-3 4.5-.6Z" fill="#fff36b" stroke="${OUT}" stroke-width="1.4"/>`,
+ gold:()=>`${body('#2c3e66',`<path d="M41 68 L50 88 L59 68Z" fill="#fff" stroke="${OUT}" stroke-width="2.5"/><path d="M48 71 L52 71 L53.5 82 L50 87 L46.5 82Z" fill="#f2b632" stroke="${OUT}" stroke-width="2"/><path d="M34 74 L42 90 M66 74 L58 90" stroke="#1d2a47" stroke-width="3"/>`)}
+  ${face('#f0c8a0',{mouth:'M44 55.5 Q51 60 57 53.5'})}
+  <path d="M36 39.5 Q41 37 46 39.5 M54 39.5 Q59 37 64 39.5" stroke="${OUT}" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  <path d="M29 41 Q29 21 50 20 Q71 21 71 41 Q67 29 55 28.5 Q47 26 40 30 Q32 33 29 41Z" fill="#a4adb8" stroke="${OUT}" stroke-width="3"/>
+  <circle cx="58" cy="46" r="6.5" fill="none" stroke="#e8b62c" stroke-width="2.6"/><path d="M64.5 46 L71 49" stroke="#e8b62c" stroke-width="2"/>`,
+ kai:()=>`<ellipse cx="82" cy="58" rx="9" ry="32" fill="#ff7a59" stroke="${OUT}" stroke-width="3" transform="rotate(18 82 58)"/><path d="M78 30 L86 86" stroke="#fff" stroke-width="2.5" transform="rotate(18 82 58)"/>
+  ${body('#1fb5a8',`<circle cx="30" cy="88" r="3.2" fill="#fff"/><circle cx="66" cy="84" r="3.2" fill="#fff"/><circle cx="58" cy="96" r="3.2" fill="#fff"/><circle cx="38" cy="98" r="3.2" fill="#fff"/>`)}
+  <g stroke="${OUT}" stroke-width="1.6"><circle cx="36" cy="68" r="4.5" fill="#ff6fa8"/><circle cx="44" cy="72" r="4.5" fill="#fff36b"/><circle cx="52" cy="73" r="4.5" fill="#ff6fa8"/><circle cx="60" cy="71" r="4.5" fill="#fff36b"/><circle cx="66" cy="67" r="4.5" fill="#ff6fa8"/></g>
+  ${face('#c98e5c',{mouth:'M43 54 Q50 62 57 54'})}
+  <path d="M28 43 Q25 20 50 20 Q75 20 72 43 Q67 29 61 35 Q57 24 49 32 Q41 25 35 36 Q31 36 28 43Z" fill="#f2b84a" stroke="${OUT}" stroke-width="3"/>`,
+ rosa:()=>`${body('#8e5bd6',`<path d="M42 68 L50 80 L58 68Z" fill="#fff" stroke="${OUT}" stroke-width="2.5"/><rect x="58" y="76" width="30" height="17" rx="3" fill="#fff" stroke="${OUT}" stroke-width="2.6"/><text x="73" y="88.5" text-anchor="middle" font-family="Arial Black,Arial" font-weight="900" font-size="9" fill="#e23d5c">SOLD</text>`)}
+  ${face('#e8b28e',{mouth:'M44 55 Q50 60.5 56 55'})}
+  <circle cx="50" cy="19" r="8.5" fill="#3b2418" stroke="${OUT}" stroke-width="3"/>
+  <path d="M28 46 Q27 23 50 23 Q73 23 72 46 Q68 34 58 31 Q50 36 41 31 Q31 35 28 46Z" fill="#3b2418" stroke="${OUT}" stroke-width="3"/>
+  <circle cx="29" cy="55" r="2.6" fill="#f2b632" stroke="${OUT}" stroke-width="1.3"/><circle cx="71" cy="55" r="2.6" fill="#f2b632" stroke="${OUT}" stroke-width="1.3"/>`,
+};
+const avCache={};
+function avatar(id){return avCache[id]||(avCache[id]=`<svg viewBox="0 0 100 100" aria-hidden="true">${(AV[id]||AV.tex)()}</svg>`)}
+const LINES={
+ tex:{buy:M('Yeehaw！这片地我包了！','Yeehaw! This land is mine!'),up:M('再盖高点，德州啥都要大！','Everything’s bigger in Texas!'),pay:M('哎哟，我的买马钱……','Ouch, there goes my saddle money.'),earn:M('交租吧，伙计！','Pay up, partner!'),jail:M('这牢房比马厩还小！','This cell’s smaller than my barn!'),lucky:M('今天运气像野马一样！','Luck’s runnin’ wild today!'),bad:M('真是倒霉的一天……','Well, that ain’t good.'),broke:M('我回牧场去了……','Back to the ranch I go…')},
+ sam:{buy:M('数据说了：买！','The data says: buy.'),up:M('2.0 版本上线！','Shipping version 2.0!'),pay:M('这不在预算里……','That wasn’t in the budget.'),earn:M('被动收入 +1。','Passive income +1.'),jail:M('我只是在 debug！','I was just debugging!'),lucky:M('算法稳赢！','The algorithm wins!'),bad:M('出 bug 了……','Ugh, a bug.'),broke:M('创业失败了……','Startup failed…')},
+ stella:{buy:M('买！拍豪宅综艺！','Buy it! Perfect for my show!'),up:M('必须更闪亮！','It needs more sparkle!'),pay:M('让我的经纪人处理……','My agent will handle this…'),earn:M('谢谢粉丝们支持～','Thank you, fans!'),jail:M('请不要拍照！','No photos, please!'),lucky:M('我是天生的主角！','Born to be the star!'),bad:M('这段剪掉！','Cut! Cut that scene!'),broke:M('我要退圈了……','I’m retiring from showbiz…')},
+ gold:{buy:M('现金为王，统统买下。','Cash is king. I’ll take it.'),up:M('资产必须增值。','Assets must appreciate.'),pay:M('小钱而已。','Pocket change.'),earn:M('钱生钱，最美妙。','Money making money. Lovely.'),jail:M('叫我的律师来！','Call my lawyer!'),lucky:M('市场永远站在我这边。','The market loves me.'),bad:M('这只是暂时回调。','Just a market correction.'),broke:M('华尔街崩盘了……','Wall Street crashed…')},
+ kai:{buy:M('Aloha～ 海景房收了！','Aloha! Ocean view, I’m in!'),up:M('浪越大，房越大！','Bigger waves, bigger house!'),pay:M('被浪拍倒了……','Wiped out by that wave…'),earn:M('Mahalo，谢啦！','Mahalo, friend!'),jail:M('这里一点海风都没有……','No ocean breeze in here…'),lucky:M('完美的浪！','Totally tubular!'),bad:M('太扫兴了……','Bummer, dude.'),broke:M('我还是去冲浪吧……','Guess I’ll just surf…')},
+ rosa:{buy:M('地段、地段、还是地段！','Location, location, location!'),up:M('装修完租金更高！','Renovate, then raise the rent!'),pay:M('这租金远超市场价！','That rent is way over market!'),earn:M('租金准时到账～','Rent paid on time, love it.'),jail:M('这套房子没有窗户……','This unit has no windows…'),lucky:M('SOLD！又成交一单！','SOLD! Another deal closed!'),bad:M('这单黄了……','That deal fell through…'),broke:M('我要转行了……','Time to change careers…')},
+};
+
+/* ================== hand-drawn icons (viewBox 64) ================== */
+const SW=`stroke="${OUT}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"`;
+const WAVE=(y,c='#5aa2f0')=>`<path d="M2 ${y} q7.5 -5 15 0 t15 0 t15 0 t15 0" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`;
+const STAR4=(x,y,r=4,c='#ffc93c')=>`<path d="M${x} ${y-r} L${x+r*.35} ${y-r*.35} L${x+r} ${y} L${x+r*.35} ${y+r*.35} L${x} ${y+r} L${x-r*.35} ${y+r*.35} L${x-r} ${y} L${x-r*.35} ${y-r*.35}Z" fill="${c}" stroke="${OUT}" stroke-width="1"/>`;
+const STAR5=(x,y,s=1,c='#ffc93c')=>`<path transform="translate(${x} ${y}) scale(${s})" d="M0 -6 l1.8 3.8 4.1.5 -3.1 2.8 .9 4.1 -3.7-2.1 -3.7 2.1 .9-4.1 -3.1-2.8 4.1-.5Z" fill="${c}" stroke="${OUT}" stroke-width="1.2"/>`;
+const LCLAW=`<path d="M25 30 Q16 27 17 17" stroke="${OUT}" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M25 30 Q16 27 17 17" stroke="#e8463a" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M17 19 Q7 17 8 8 Q11 12 15 11.5 Q13 6 18 3 Q25 10 17 19Z" fill="#e8463a" ${SW}/>`;
+const FW=[[52,28],[46.1,42.1],[32,48],[17.9,42.1],[12,28],[17.9,13.9],[32,8],[46.1,13.9]];
+const ICONS={
+ CA:`${WAVE(58)}<path d="M2 32 L16.5 11 Q32 38 47.5 11 L62 32" fill="none" stroke="#c43c26" stroke-width="2.5"/><path d="M24 23v15M32 27v11M40 23v15M8 23v15M56 23v15" stroke="#c43c26" stroke-width="1.6"/><rect x="13" y="9" width="7" height="45" rx="1.5" fill="#e8543a" ${SW}/><rect x="44" y="9" width="7" height="45" rx="1.5" fill="#e8543a" ${SW}/><path d="M13 20h7M44 20h7M13 30h7M44 30h7" stroke="${OUT}" stroke-width="2"/><rect x="1" y="38" width="62" height="5" rx="2" fill="#e8543a" ${SW}/>`,
+ NY:`<rect x="19" y="50" width="26" height="11" rx="2" fill="#d8c39a" ${SW}/><path d="M24 50 L26 31 Q32 27 38 31 L40 50Z" fill="#5cc6a7" ${SW}/><path d="M36.5 32 L43.5 15" stroke="${OUT}" stroke-width="7" stroke-linecap="round"/><path d="M36.5 32 L43.5 15" stroke="#5cc6a7" stroke-width="3.5" stroke-linecap="round"/><path d="M40 15 H47.5 L46 10 H41.5Z" fill="#5cc6a7" ${SW}/><path d="M43.7 10 Q40.5 6 43.7 1.5 Q47 6 43.7 10Z" fill="#ffc93c" ${SW}/><path d="M24.5 21 L26.5 13.5 L29 18.5 L32 11 L35 18.5 L37.5 13.5 L39.5 21Z" fill="#5cc6a7" ${SW}/><circle cx="32" cy="24" r="6.5" fill="#5cc6a7" ${SW}/><rect x="25" y="35" width="7" height="9" rx="1" fill="#46a58b" ${SW}/>`,
+ WA:`<path d="M25 61 L30.5 27 H33.5 L39 61" fill="#eef2fa" ${SW}/><path d="M32 27 V61" stroke="${OUT}" stroke-width="2"/><rect x="24" y="45" width="16" height="3.5" rx="1" fill="#eef2fa" ${SW}/><path d="M32 16 V2" stroke="${OUT}" stroke-width="2.5"/><path d="M20 22 Q32 11 44 22Z" fill="#eef2fa" ${SW}/><ellipse cx="32" cy="24" rx="17" ry="5.5" fill="#f2a516" ${SW}/>`,
+ TX:`<path d="M20 34 Q19 13 32 16 Q45 13 44 34Z" fill="#a8703a" ${SW}/><path d="M21 29 Q32 25 43 29" stroke="#5c3a1a" stroke-width="4" fill="none"/><path d="M3 33 Q11 27 20 31 Q32 36 44 31 Q53 27 61 33 Q53 44 32 42 Q11 44 3 33Z" fill="#c98b4e" ${SW}/>${STAR5(32,22,.9)}`,
+ FL:`<circle cx="48" cy="15" r="9" fill="#ffc93c" ${SW}/><path d="M8 61 Q32 50 56 61Z" fill="#f3d58a" ${SW}/><path d="M29 58 Q34 40 30 23" stroke="${OUT}" stroke-width="7.5" stroke-linecap="round" fill="none"/><path d="M29 58 Q34 40 30 23" stroke="#c08a50" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M30 23 Q18 13 6 22 Q19 19 30 25Z" fill="#3dae5c" ${SW}/><path d="M30 23 Q41 11 54 19 Q41 19 30 25Z" fill="#3dae5c" ${SW}/><path d="M30 23 Q21 9 26 3 Q28 14 32 22Z" fill="#46c26a" ${SW}/><path d="M30 24 Q19 26 13 37 Q23 29 31 26Z" fill="#46c26a" ${SW}/><path d="M30 24 Q41 26 46 37 Q37 29 30 26Z" fill="#46c26a" ${SW}/>`,
+ HI:`${[0,72,144,216,288].map(a=>`<ellipse cx="32" cy="18" rx="10" ry="13" fill="#ff5d8f" ${SW} transform="rotate(${a} 32 32)"/>`).join('')}<circle cx="32" cy="32" r="6" fill="#ffd34d" ${SW}/><path d="M32 32 L46 18" stroke="${OUT}" stroke-width="2.5"/><circle cx="46" cy="18" r="3" fill="#ffd34d" ${SW}/>`,
+ NV:`<g transform="rotate(-12 19 37)"><rect x="6" y="24" width="26" height="26" rx="5" fill="#fff" ${SW}/><circle cx="13" cy="31" r="2.6" fill="${OUT}"/><circle cx="19" cy="37" r="2.6" fill="${OUT}"/><circle cx="25" cy="43" r="2.6" fill="${OUT}"/></g><g transform="rotate(12 44 26)"><rect x="31" y="13" width="26" height="26" rx="5" fill="#e23d5c" ${SW}/><circle cx="38" cy="20" r="2.6" fill="#fff"/><circle cx="50" cy="20" r="2.6" fill="#fff"/><circle cx="38" cy="32" r="2.6" fill="#fff"/><circle cx="50" cy="32" r="2.6" fill="#fff"/></g>${STAR4(9,12,5)}${STAR4(55,52,5)}`,
+ AZ:`<path d="M27 40 H19 Q13 40 13 34 V24 Q13 19.5 17 19.5 Q21 19.5 21 24 V32 H27" fill="#3dae5c" ${SW}/><path d="M37 33 H44 Q50 33 50 27 V19 Q50 14.5 46 14.5 Q42 14.5 42 19 V26 H37" fill="#3dae5c" ${SW}/><path d="M26.5 59 V15 Q26.5 8 32 8 Q37.5 8 37.5 15 V59Z" fill="#46c26a" ${SW}/><path d="M32 13 V55" stroke="#2a8a48" stroke-width="1.8"/><path d="M6 59 H58" stroke="${OUT}" stroke-width="3" stroke-linecap="round"/>`,
+ CO:`<circle cx="50" cy="14" r="6" fill="#ffc93c" ${SW}/><path d="M2 56 L22 17 L33 36 L42 25 L62 56Z" fill="#7d8fb3" ${SW}/><path d="M22 17 L15.5 30 L19 28 L22.5 31.5 L26 28 L28.5 29.5Z" fill="#fff" ${SW}/><path d="M42 25 L37 33 L40.5 31.5 L43.5 34.5 L47 32Z" fill="#fff" stroke="${OUT}" stroke-width="2" stroke-linejoin="round"/><path d="M2 56 H62" stroke="${OUT}" stroke-width="3" stroke-linecap="round"/>`,
+ GA:`<path d="M32 19 Q13 14 11 35 Q11 55 32 57 Q53 55 53 35 Q51 14 32 19Z" fill="#ffab76" ${SW}/><path d="M32 21 Q27 37 32 55" stroke="#f0805a" stroke-width="2.5" fill="none" stroke-linecap="round"/><ellipse cx="22" cy="32" rx="4" ry="6" fill="#fff" opacity=".45"/><path d="M32 19 Q33 11 38 7" stroke="${OUT}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M35 12 Q46 3 54 11 Q43 17 35 12Z" fill="#3dae5c" ${SW}/>`,
+ TN:`<path d="M31 41 L53 11" stroke="${OUT}" stroke-width="7.5" stroke-linecap="round"/><path d="M31 41 L53 11" stroke="#9a6334" stroke-width="4" stroke-linecap="round"/><rect x="49.5" y="2" width="9" height="12" rx="2" fill="#5c3a1a" ${SW} transform="rotate(36 54 8)"/><path d="M22 33 Q11 33 11 44 Q11 59 26 59 Q35 59 39 52 Q45 50 45 42 Q45 33 37 33 Q35 27 29 29 Q25 29 22 33Z" fill="#f08a4b" ${SW}/><circle cx="28" cy="45" r="5" fill="${OUT}"/><rect x="19" y="50" width="11" height="3.5" rx="1" fill="${OUT}" transform="rotate(36 24.5 51.7)"/>`,
+ OH:`<path d="M18 31V58M32 31V58M44 29V58M54 25V58M10 46V58" stroke="${OUT}" stroke-width="2"/><path d="M2 52 Q11 52 17 31 Q23 9 31 30 Q37 47 43 29 Q47 18 53 23 Q59 30 62 30" fill="none" stroke="${OUT}" stroke-width="7" stroke-linecap="round"/><path d="M2 52 Q11 52 17 31 Q23 9 31 30 Q37 47 43 29 Q47 18 53 23 Q59 30 62 30" fill="none" stroke="#e23d5c" stroke-width="3.5" stroke-linecap="round"/><rect x="18" y="8" width="12" height="8" rx="2.5" fill="#ffc93c" ${SW}/><path d="M4 58 H60" stroke="${OUT}" stroke-width="3" stroke-linecap="round"/>`,
+ MI:`<path d="M6 44 Q6 35 14 34 L20 25 Q22 22 26 22 H40 Q44 22 47 26 L52 34 Q58 35 58 44 V47 H6Z" fill="#5aa2f0" ${SW}/><path d="M23 26 H31 V34 H18.5Z" fill="#dff3ff" stroke="${OUT}" stroke-width="2" stroke-linejoin="round"/><path d="M34 26 H41.5 L46.5 34 H34Z" fill="#dff3ff" stroke="${OUT}" stroke-width="2" stroke-linejoin="round"/><circle cx="18" cy="48" r="6.5" fill="${OUT}"/><circle cx="18" cy="48" r="2.6" fill="#d9d9d9"/><circle cx="46" cy="48" r="6.5" fill="${OUT}"/><circle cx="46" cy="48" r="2.6" fill="#d9d9d9"/><circle cx="55" cy="39" r="2.2" fill="#ffc93c" stroke="${OUT}" stroke-width="1.2"/>`,
+ IL:`<rect x="7" y="32" width="10" height="27" fill="#8fa3c8" ${SW}/><path d="M21 15 V6 M27 15 V6" stroke="${OUT}" stroke-width="2.5"/><rect x="17" y="15" width="13" height="44" fill="#5d6f99" ${SW}/><rect x="30" y="25" width="11" height="34" fill="#a9b8d8" ${SW}/><rect x="41" y="35" width="9" height="24" fill="#7d8fb3" ${SW}/><rect x="50" y="21" width="8" height="38" fill="#5d6f99" ${SW}/>${[[20,20],[25,20],[20,28],[25,28],[20,36],[25,36],[33,30],[37,30],[33,38],[37,38],[52,26],[52,34],[10,37],[10,45]].map(([x,y])=>`<rect x="${x}" y="${y}" width="2.5" height="4" fill="#ffe28a"/>`).join('')}<path d="M3 59 H61" stroke="${OUT}" stroke-width="3" stroke-linecap="round"/>`,
+ LA:`<path d="M8 41 L4 60" stroke="#8b5a2b" stroke-width="4" stroke-linecap="round"/><path d="M40 23 Q44 7 52 2 Q50 15 45 24Z" fill="#3dae5c" ${SW}/><path d="M45 23 Q55 11 62 10 Q57 19 49 25Z" fill="#ffc93c" ${SW}/><path d="M6 31 Q8 21 20 23 Q28 25 32 29 Q36 25 44 23 Q56 21 58 31 Q58 43 46 45 Q38 45 32 39 Q26 45 18 45 Q6 43 6 31Z" fill="#9b72e8" ${SW}/><path d="M14 32 Q20 27 26 33 Q20 37 14 32Z" fill="${OUT}"/><path d="M50 32 Q44 27 38 33 Q44 37 50 32Z" fill="${OUT}"/><circle cx="32" cy="34" r="2.5" fill="#ffc93c" stroke="${OUT}" stroke-width="1.2"/>`,
+ NC:`${WAVE(59)}<path d="M23 55 L27 19 H37 L41 55Z" fill="#fff" ${SW}/><path d="M25.8 30 H38.2 L39 38 H25Z" fill="${OUT}"/><path d="M24.4 44 H39.6 L40.3 51 H23.7Z" fill="${OUT}"/><rect x="22" y="17" width="20" height="3.5" rx="1" fill="${OUT}"/><rect x="26" y="9" width="12" height="8" rx="1" fill="#ffc93c" ${SW}/><path d="M24 9.5 L32 3 L40 9.5Z" fill="#e23d5c" ${SW}/><path d="M40 12 L58 7 M40 15 L58 20 M24 12 L6 7 M24 15 L6 20" stroke="#ffc93c" stroke-width="3" stroke-linecap="round"/>`,
+ VA:`<circle cx="32" cy="10" r="5" fill="none" stroke="#3b4a6b" stroke-width="4"/><path d="M32 15 V55 M21 23 H43" stroke="#3b4a6b" stroke-width="5" stroke-linecap="round"/><path d="M12 38 Q14 55 32 56 Q50 55 52 38" fill="none" stroke="#3b4a6b" stroke-width="5" stroke-linecap="round"/><path d="M7 41 L12 33 L18 41Z" fill="#3b4a6b" stroke="#3b4a6b" stroke-width="2" stroke-linejoin="round"/><path d="M57 41 L52 33 L46 41Z" fill="#3b4a6b" stroke="#3b4a6b" stroke-width="2" stroke-linejoin="round"/>`,
+ PA:`<rect x="28.5" y="3" width="7" height="8" rx="1.5" fill="#8b5a2b" ${SW}/><circle cx="32" cy="55" r="4" fill="#8b5a2b" ${SW}/><path d="M32 10 Q20 10 19 26 Q18 40 12 46 H52 Q46 40 45 26 Q44 10 32 10Z" fill="#d0a052" ${SW}/><rect x="9" y="45" width="46" height="6.5" rx="3" fill="#b9853d" ${SW}/><path d="M30 15 L33 22 L29 28 L34 35 L31 44" stroke="${OUT}" stroke-width="2" fill="none" stroke-linejoin="round"/><ellipse cx="25" cy="24" rx="2.5" ry="6" fill="#fff" opacity=".4"/>`,
+ NJ:`<path d="M32 28 L19 59 M32 28 L45 59" stroke="${OUT}" stroke-width="3.5" stroke-linecap="round"/>${FW.map(([x,y])=>`<path d="M32 28 L${x} ${y}" stroke="${OUT}" stroke-width="1.5"/>`).join('')}<circle cx="32" cy="28" r="20" fill="none" stroke="${OUT}" stroke-width="5.5"/><circle cx="32" cy="28" r="20" fill="none" stroke="#e23d5c" stroke-width="2.5"/>${FW.map(([x,y],k)=>`<circle cx="${x}" cy="${y}" r="4.2" fill="${['#ffc93c','#5aa2f0','#3dae5c','#ff6fa8'][k%4]}" stroke="${OUT}" stroke-width="1.6"/>`).join('')}<circle cx="32" cy="28" r="3.5" fill="#ffc93c" ${SW}/><path d="M8 59 H56" stroke="${OUT}" stroke-width="3" stroke-linecap="round"/>`,
+ CT:`${WAVE(59)}<path d="M32 5 V45" stroke="${OUT}" stroke-width="3"/><path d="M33.5 8 L53 41 H33.5Z" fill="#fff" ${SW}/><path d="M30.5 14 L13 41 H30.5Z" fill="#5aa2f0" ${SW}/><path d="M32 5 L41 8 L32 11Z" fill="#e23d5c" stroke="${OUT}" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 45 H56 L49 55 H15Z" fill="#9a6334" ${SW}/>`,
+ MA:`<path d="M30 24 Q26 9 13 4 M34 24 Q38 9 51 4" stroke="${OUT}" stroke-width="1.8" fill="none"/>${LCLAW}<g transform="translate(64 0) scale(-1 1)">${LCLAW}</g><path d="M26 40 L17 44 M26 45 L18 50 M38 40 L47 44 M38 45 L46 50" stroke="${OUT}" stroke-width="2.2" stroke-linecap="round"/><path d="M26 47 Q32 62 38 47Z" fill="#e8463a" ${SW}/><ellipse cx="32" cy="37" rx="8.5" ry="13" fill="#f05a4a" ${SW}/><circle cx="29" cy="27" r="2" fill="${OUT}"/><circle cx="35" cy="27" r="2" fill="${OUT}"/><path d="M26 41 H38 M27 46 H37" stroke="#c4392c" stroke-width="1.8"/>`,
+ MS:`${WAVE(60)}<circle cx="52" cy="38" r="8.5" fill="#e23d5c" ${SW}/><path d="M52 30 V46 M44 38 H60 M46.5 32.5 L57.5 43.5 M57.5 32.5 L46.5 43.5" stroke="${OUT}" stroke-width="1.5"/><rect x="24" y="8" width="5" height="15" fill="${OUT}"/><rect x="34" y="8" width="5" height="15" fill="${OUT}"/><circle cx="27" cy="5" r="3" fill="#d9d9d9"/><circle cx="37" cy="4" r="3.5" fill="#d9d9d9"/><rect x="20" y="22" width="23" height="8" fill="#fff" ${SW}/><rect x="13" y="30" width="35" height="10" fill="#fff3d8" ${SW}/>${[17,24,31,38].map(x=>`<rect x="${x}" y="33" width="4" height="4" fill="#5aa2f0"/>`).join('')}<path d="M3 40 H49 L44 51 H9Z" fill="#fff" ${SW}/><path d="M6 44 H47" stroke="#e23d5c" stroke-width="3"/>`,
+ AR:`<path d="M13 23 L22 12 H42 L51 23 L32 55Z" fill="#7fd6f5" ${SW}/><path d="M27 23 L32 55 L22 23Z" fill="#b8ecfb" opacity=".7"/><path d="M13 23 H51 M22 12 L27 23 L32 12 L37 23 L42 12 M27 23 L32 55 L37 23" stroke="${OUT}" stroke-width="2" fill="none" stroke-linejoin="round"/>${STAR4(54,9,5)}${STAR4(9,42,4)}`,
+ AL:`<path d="M20 34 L9 49 L20 46Z" fill="#e23d5c" ${SW}/><path d="M44 34 L55 49 L44 46Z" fill="#e23d5c" ${SW}/><path d="M24 44 Q26 56 32 62 Q38 56 40 44Z" fill="#ffc93c" ${SW}/><path d="M28 44 Q30 51 32 55 Q34 51 36 44Z" fill="#ff7a3c"/><path d="M32 3 Q45 14 44 34 V45 H20 V34 Q19 14 32 3Z" fill="#f4f6fb" ${SW}/><path d="M25 13 H39" stroke="#e23d5c" stroke-width="3"/><circle cx="32" cy="25" r="5.5" fill="#5aa2f0" ${SW}/>`,
+ go:`<path d="M5 32 L27 11 V23 H58 V41 H27 V53Z" fill="#e23d5c" ${SW}/>`,
+ chance:`<g transform="rotate(-8 32 32)"><rect x="14" y="7" width="36" height="50" rx="7" fill="#ffc93c" ${SW}/><text x="32" y="45" text-anchor="middle" font-family="Lilita One,Arial Black,sans-serif" font-size="36" fill="${OUT}">?</text></g>`,
+ fate:`<path d="M17 55 L21 45 H43 L47 55Z" fill="#9a6334" ${SW}/><circle cx="32" cy="27" r="19" fill="#b99bff" ${SW}/><ellipse cx="25" cy="20" rx="5" ry="7" fill="#fff" opacity=".45"/>${STAR5(37,30,1.1,'#fff36b')}${STAR4(26,34,3,'#fff')}`,
+ rail:`<rect x="6" y="20" width="32" height="22" rx="3" fill="#e23d5c" ${SW}/><rect x="36" y="12" width="20" height="30" rx="3" fill="#3b4a6b" ${SW}/><rect x="41" y="17" width="10" height="9" rx="1.5" fill="#dff3ff" stroke="${OUT}" stroke-width="2"/><rect x="12" y="10" width="7" height="10" fill="${OUT}"/><circle cx="15" cy="6" r="3.5" fill="#d9d9d9"/>${[16,32,48].map(x=>`<circle cx="${x}" cy="46" r="6" fill="${OUT}"/><circle cx="${x}" cy="46" r="2.3" fill="#d9d9d9"/>`).join('')}<path d="M2 54 H62" stroke="${OUT}" stroke-width="3" stroke-linecap="round"/>`,
+ plane:`<g transform="rotate(-25 32 32)"><path d="M28 27 L36 8 H42 L40 27Z" fill="#5aa2f0" ${SW}/><path d="M28 37 L36 56 H42 L40 37Z" fill="#5aa2f0" ${SW}/><path d="M8 28 L4 17 H10 L17 28Z" fill="#5aa2f0" ${SW}/><path d="M6 32 Q6 27 14 27 H48 Q58 27 60 32 Q58 37 48 37 H14 Q6 37 6 32Z" fill="#f4f6fb" ${SW}/><path d="M50 30 H55" stroke="${OUT}" stroke-width="2.5" stroke-linecap="round"/><path d="M20 32 H42" stroke="#5aa2f0" stroke-width="2"/></g>`,
+ power:`<circle cx="32" cy="32" r="27" fill="#3b4a6b" ${SW}/><path d="M36 6 L17 36 H30 L26 58 L47 26 H34Z" fill="#ffc93c" ${SW}/>`,
+ water:`<path d="M32 5 Q49 28 49 40 A17 17 0 0 1 15 40 Q15 28 32 5Z" fill="#5aa2f0" ${SW}/><path d="M22 40 Q22 48 28 51" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".7"/>`,
+ hospital:`<path d="M8 22 L32 8 L56 22Z" fill="#ff8a8d" ${SW}/><rect x="11" y="22" width="42" height="35" rx="2" fill="#fff" ${SW}/><path d="M28 28 H36 V34 H42 V42 H36 V48 H28 V42 H22 V34 H28Z" fill="#e23d5c" stroke="${OUT}" stroke-width="2" stroke-linejoin="round"/>`,
+ tax:`<path d="M6 22 L32 7 L58 22Z" fill="#e9e3d3" ${SW}/><rect x="8" y="22" width="48" height="5" fill="#e9e3d3" ${SW}/>${[13,23,33,43].map(x=>`<rect x="${x}" y="27" width="8" height="22" fill="#fff" ${SW}/>`).join('')}<rect x="5" y="49" width="54" height="7" rx="1.5" fill="#e9e3d3" ${SW}/><text x="32" y="20.5" text-anchor="middle" font-family="Lilita One,Arial Black,sans-serif" font-size="11" fill="${OUT}">$</text>`,
+ jail:`<rect x="10" y="6" width="44" height="46" rx="5" fill="#9aa3ad" ${SW}/><rect x="16" y="12" width="32" height="30" rx="2" fill="#3b4a6b" ${SW}/>${[22,29,36,43].map(x=>`<path d="M${x} 12 V42" stroke="#d9dde3" stroke-width="3"/>`).join('')}<path d="M26 47 V43 Q26 38 32 38 Q38 38 38 43 V47" fill="none" stroke="${OUT}" stroke-width="3"/><rect x="23" y="46" width="18" height="14" rx="3" fill="#ffc93c" ${SW}/><circle cx="32" cy="53" r="2.2" fill="${OUT}"/>`,
+ casino:`<path d="M14 7 L18 12 M28 3 V10 M42 7 L38 12" stroke="#ffc93c" stroke-width="3" stroke-linecap="round"/><rect x="8" y="13" width="40" height="45" rx="6" fill="#e23d5c" ${SW}/><rect x="13" y="20" width="30" height="16" rx="3" fill="#fff" ${SW}/><text x="28" y="33" text-anchor="middle" font-family="Lilita One,Arial Black,sans-serif" font-size="13" fill="#e23d5c">777</text><rect x="14" y="42" width="28" height="7" rx="2" fill="#ffc93c" ${SW}/><path d="M48 30 H54 V12" stroke="${OUT}" stroke-width="3" fill="none"/><circle cx="54" cy="10" r="4.5" fill="#ffc93c" ${SW}/>`,
+ gotojail:`<path d="M32 4 L39 18 L55 20 L44 32 L47 48 L32 41 L17 48 L20 32 L9 20 L25 18Z" fill="#ffc93c" ${SW}/><circle cx="32" cy="29" r="8" fill="#3b4a6b" ${SW}/>${STAR5(32,29.5,.75)}<path d="M14 56 H50" stroke="#5aa2f0" stroke-width="5" stroke-linecap="round"/>`,
+};
+function icKey(t){if(t.type==='state')return t.code;if(t.type==='rail')return t.icon==='✈️'?'plane':'rail';if(t.type==='util')return t.icon==='⚡'?'power':'water';return t.type}
+const icCache={};
+function ICON(i){const k=icKey(TILES[i]);return icCache[k]||(icCache[k]=`<svg viewBox="0 0 64 64" aria-hidden="true">${ICONS[k]||''}</svg>`)}
+/* ================== buildings ================== */
+function house(cx,by,w,c){const h=w*.62,x=cx-w/2,y=by-h;return`<path d="M${x-2.5} ${y+1} L${cx} ${y-w*.46} L${x+w+2.5} ${y+1}Z" fill="${c}" ${SW}/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff8e6" ${SW}/><rect x="${cx-w*.13}" y="${by-h*.58}" width="${w*.26}" height="${h*.58}" fill="${OUT}"/>`}
+function hotel(x,y,w,h,c){let win='';const cols=3,rows=Math.max(2,Math.floor((h-14)/8));for(let r=0;r<rows;r++)for(let k=0;k<cols;k++)win+=`<rect x="${(x+4+k*(w-8)/cols+1).toFixed(1)}" y="${(y+5+r*8).toFixed(1)}" width="${((w-8)/cols-2).toFixed(1)}" height="4.5" rx="1" fill="#fff8e6"/>`;return`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="${c}" ${SW}/>${win}<rect x="${x+w/2-4}" y="${y+h-8}" width="8" height="8" fill="${OUT}"/>`}
+function lux(x,y,w,h){const cx=x+w/2;return`<path d="M${cx} ${y} V${y+h*.15}" stroke="${OUT}" stroke-width="2.5"/><rect x="${x+w*.28}" y="${y+h*.15}" width="${w*.44}" height="${h*.18}" fill="#ffe08a" ${SW}/><rect x="${x+w*.12}" y="${y+h*.33}" width="${w*.76}" height="${h*.2}" fill="#ffc93c" ${SW}/><rect x="${x}" y="${y+h*.53}" width="${w}" height="${h*.47}" fill="#f2a516" ${SW}/><path d="M${x+w*.3} ${y+h*.62} V${y+h*.95} M${x+w*.5} ${y+h*.62} V${y+h*.95} M${x+w*.7} ${y+h*.62} V${y+h*.95}" stroke="#fff3c4" stroke-width="2"/>${STAR4(x-5,y+h*.3,4.5,'#fff')}${STAR4(x+w+5,y+h*.12,4,'#fff')}`}
+function bld(level,c,vert){
+ if(!level)return'';let inner,vb;
+ if(!vert){vb='0 0 64 40';inner=level===1?house(32,38,24,c):level===2?house(18,38,20,c)+house(46,38,20,c):level===3?hotel(18,3,28,35,c):lux(20,0,24,39)}
+ else{vb='0 0 40 64';inner=level===1?house(20,52,26,c):level===2?house(20,28,22,c)+house(20,60,22,c):level===3?hotel(8,5,24,56,c):lux(8,2,24,60)}
+ return`<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${inner}</svg>`;
+}
+
+/* ================== board data ================== */
+const GCOL=['var(--g1)','var(--g2)','var(--g3)','var(--g4)','var(--g5)','var(--g6)','var(--g7)','var(--g8)'];
+const GROUPS=[M('深南部','Deep South'),M('中西部','Midwest'),M('东南部','Southeast'),M('墨西哥湾','Gulf Coast'),M('山区西部','Mountain West'),M('大西洋中部','Mid-Atlantic'),M('东北部','Northeast'),M('太平洋','Pacific')];
+const LVN={zh:['空地','一栋房子','两栋房子','酒店','豪华酒店'],en:['Empty lot','1 House','2 Houses','Hotel','Luxury Hotel']};
+const LVI=['','🏠','🏠🏠','🏨','🏰'];
+const LV_MULT=[0.15,0.5,1.5,3,5];
+const UP_COST=[0.5,0.5,0.75,1];
+const SALARY=200,JAIL=11,CASINO=20,HOSP=30,CA_IDX=39,NT=40;
+const S=(code,zh,en,g,price,lm)=>({type:'state',code,zh,en,g,price,lm});
+const CH={type:'chance',icon:'❓',zh:'机会',en:'Chance'},FT={type:'fate',icon:'🎴',zh:'命运',en:'Fate'};
+const TILES=[
+ {type:'go',icon:'🏁',zh:'起点',en:'GO'},
+ S('MS','密西西比','Mississippi',0,60,'🛶'),FT,S('AR','阿肯色','Arkansas',0,60,'💎'),S('AL','阿拉巴马','Alabama',0,80,'🚀'),
+ {type:'rail',icon:'🚂',zh:'东海岸铁路',en:'East Coast Rail',price:200},
+ S('OH','俄亥俄','Ohio',1,100,'🎢'),CH,S('MI','密歇根','Michigan',1,100,'🚗'),S('IL','伊利诺伊','Illinois',1,120,'🍕'),
+ {type:'util',icon:'⚡',zh:'电力公司',en:'Power Co.',price:150},
+ {type:'jail',icon:'🔒',zh:'监狱',en:'Jail'},
+ S('TN','田纳西','Tennessee',2,140,'🎸'),S('GA','佐治亚','Georgia',2,140,'🍑'),S('NC','北卡罗来纳','North Carolina',2,160,'🌊'),
+ {type:'rail',icon:'✈️',zh:'中部机场',en:'Heartland Airport',price:200},
+ S('LA','路易斯安那','Louisiana',3,180,'🎭'),FT,S('FL','佛罗里达','Florida',3,180,'🌴'),S('TX','德克萨斯','Texas',3,200,'🤠'),
+ {type:'casino',icon:'🎰',zh:'拉斯维加斯赌场',en:'Vegas Casino'},
+ S('AZ','亚利桑那','Arizona',4,220,'🌵'),CH,S('NV','内华达','Nevada',4,220,'🎲'),S('CO','科罗拉多','Colorado',4,240,'🏔️'),
+ {type:'rail',icon:'🚂',zh:'太平洋铁路',en:'Pacific Rail',price:200},
+ S('VA','弗吉尼亚','Virginia',5,260,'⚓'),S('PA','宾夕法尼亚','Pennsylvania',5,260,'🔔'),{type:'util',icon:'💧',zh:'自来水厂',en:'Water Works',price:150},S('NJ','新泽西','New Jersey',5,280,'🎡'),
+ {type:'hospital',icon:'🏥',zh:'医院',en:'Hospital'},
+ {type:'gotojail',icon:'🚔',zh:'去坐牢',en:'Go to Jail'},
+ S('CT','康涅狄格','Connecticut',6,300,'⛵'),S('MA','马萨诸塞','Massachusetts',6,300,'🦞'),S('NY','纽约','New York',6,320,'🗽'),
+ {type:'rail',icon:'✈️',zh:'西海岸机场',en:'West Coast Airport',price:200},
+ S('WA','华盛顿','Washington',7,350,'🌲'),{type:'tax',icon:'🏛️',zh:'国税局',en:'IRS Tax'},S('HI','夏威夷','Hawaii',7,400,'🌺'),S('CA','加利福尼亚','California',7,500,'🌉'),
+];
+const BUYABLE=t=>t.type==='state'||t.type==='rail'||t.type==='util';
+const tn=i=>M(TILES[i].zh,TILES[i].en);
+function gridPos(i){
+ if(i===0)return[10,12];if(i<11)return[10,12-i];if(i===11)return[10,1];
+ if(i<20)return[10-(i-11),1];if(i===20)return[1,1];if(i<31)return[1,1+(i-20)];
+ if(i===31)return[1,12];return[1+(i-31),12];
+}
+function sideOf(i){if(i===0||i===11||i===20||i===31)return'c';if(i<11)return'b';if(i<20)return'l';if(i<31)return't';return'r'}
+const CALLOUT={MA:[948,128],CT:[950,186],NJ:[928,250]};
+
+/* ================== state ================== */
+let G={players:[],t:TILES.map(()=>({owner:null,level:0})),cur:0,round:1,fx:{boom:0,tech:0},log:[],over:false,started:false,lastDice:4,cfg:null};
+const DEF_CFG={n:3,seats:[{char:'rosa',name:'',type:'human'},{char:'tex',name:'',type:'normal'},{char:'stella',name:'',type:'normal'}],cash:1500,mode:'rounds',rounds:25};
+const CASH_OPTS=[[800,M('紧张','Tight')],[1500,M('标准','Standard')],[3000,M('富裕','Rich')],[5000,M('土豪','Big spender')]];
+const ROUND_OPTS=[[15,M('约 10 分钟','about 10 min')],[25,M('约 15 分钟','about 15 min')],[40,M('约 25 分钟','about 25 min')],[60,M('约 40 分钟','about 40 min')]];
+const MODE_OPTS=[['rounds',M('回合到了比总资产','Richest when rounds end')],['first',M('有人破产就结算','Ends at first bankruptcy')],['last',M('只剩一人获胜','Last player standing')]];
+const TYPE_OPTS=['human','normal','hard'];
+let CFG=LS.get('adt2-cfg',null)||JSON.parse(JSON.stringify(DEF_CFG));
+if(!CFG.seats||CFG.seats.length<3||!CFG.seats[0].char)CFG=JSON.parse(JSON.stringify(DEF_CFG));
+CFG.seats.forEach(s=>{if(!TYPE_OPTS.includes(s.type))s.type='normal'});
+if(!CASH_OPTS.some(o=>o[0]===CFG.cash))CFG.cash=1500;
+if(!ROUND_OPTS.some(o=>o[0]===CFG.rounds))CFG.rounds=25;
+
+const alive=()=>G.players.filter(p=>!p.bankrupt);
+const others=p=>alive().filter(q=>q!==p);
+const ownedBy=p=>G.t.map((s,i)=>s.owner===p.i?i:-1).filter(i=>i>=0);
+const groupIdx=g=>TILES.map((t,i)=>t.type==='state'&&t.g===g?i:-1).filter(i=>i>=0);
+const hasSet=(pi,g)=>groupIdx(g).every(i=>G.t[i].owner===pi);
+const unownedCount=()=>TILES.filter((t,i)=>BUYABLE(t)&&G.t[i].owner==null).length;
+const infl=()=>1+0.5*Math.floor(((G.round||1)-1)/5);
+function stateRent(i,level=G.t[i].level){const t=TILES[i];let r=t.price*LV_MULT[level];const o=G.t[i].owner;if(o!=null&&hasSet(o,t.g))r*=2;if(G.fx.tech>0&&(t.code==='CA'||t.code==='WA'))r*=2;if(G.fx.boom>0)r*=1.5;return Math.round(r*infl())}
+function rentFor(i,dice){const t=TILES[i],s=G.t[i];if(t.type==='state')return stateRent(i);const cnt=TILES.filter((x,j)=>x.type===t.type&&G.t[j].owner===s.owner).length;let r=t.type==='rail'?[0,50,100,200,400][cnt]:dice*(cnt===2?50:20);if(G.fx.boom>0)r*=1.5;return Math.round(r*infl())}
+const upCost=i=>Math.round(TILES[i].price*UP_COST[G.t[i].level]);
+function buildValue(i){let v=0;for(let l=0;l<G.t[i].level;l++)v+=TILES[i].price*UP_COST[l];return Math.round(v)}
+function worth(p){if(p.bankrupt)return 0;let w=p.cash;ownedBy(p).forEach(i=>{w+=TILES[i].price+buildValue(i)});return w}
+function leaderOther(p){const o=others(p);if(!o.length)return null;return o.reduce((a,b)=>worth(b)>worth(a)?b:a)}
+function isTrailing(p){const a=alive();if(a.length<2||p.bankrupt)return false;const ws=a.map(worth);const mx=Math.max(...ws),mn=Math.min(...ws);return worth(p)===mn&&worth(p)<mx*0.7}
+function isLeader(p){const a=alive();if(a.length<2)return false;const ws=a.map(worth).sort((x,y)=>y-x);return worth(p)===ws[0]&&ws[0]>ws[1]*1.3}
+function wheelEligible(p){const l=leaderOther(p);return !!l&&p.wheelCD===0&&worth(p)<worth(l)*0.3}
+
+/* ================== sound ================== */
+let AC=null,SOUND=LS.get('adt-sound',true);
+const SFX={tick:[[880,.03,'triangle',.05]],dice:[[300,.05,'triangle'],[420,.05,'triangle'],[360,.06,'triangle']],cash:[[988,.07],[1319,.14]],pay:[[330,.1,'sawtooth',.035],[247,.16,'sawtooth',.035]],buy:[[523,.08],[659,.08],[784,.16]],jail:[[196,.3,'square',.04]],win:[[523,.12],[659,.12],[784,.12],[1047,.4]],bad:[[220,.2,'sawtooth',.045],[150,.35,'sawtooth',.045]],card:[[660,.06],[990,.1]],lucky:[[784,.08],[988,.08],[1175,.08],[1568,.25]]};
+function sfx(k){if(!SOUND||window.__FAST)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();let t=AC.currentTime;(SFX[k]||[]).forEach(([f,d,type='sine',vol=.07])=>{const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d+.02);t+=d*.9})}catch(e){}}
+
+/* ================== board render ================== */
+const tileEls=[];
+function buildBoard(){
+ const b=$('#board');b.innerHTML='';
+ TILES.forEach((t,i)=>{
+  const [r,c]=gridPos(i),side=sideOf(i);
+  const el=document.createElement('div');
+  el.className=`tile side-${side} t-${t.type}`+(side==='c'?' corner':'');
+  el.style.gridRow=r;el.style.gridColumn=c;el.dataset.i=i;
+  if(t.type==='state')el.style.setProperty('--gc',GCOL[t.g]);
+  el.innerHTML=t.type==='state'?'<div class="band"></div><div class="tbody"></div>':'<div class="tbody"></div><div class="ownb"></div>';
+  el.addEventListener('click',()=>openDeed(i));
+  b.appendChild(el);tileEls[i]=el;
+ });
+ const c=document.createElement('div');c.className='center';c.id='center';
+ c.innerHTML=`<div class="fxRow" id="fxRow"></div><svg id="usmap" viewBox="-66 4 1080 612" preserveAspectRatio="xMidYMin meet" role="img" aria-label="US map"></svg>
+ <div class="panel"><div class="prow1"><span class="tav" id="turnAv"></span><span class="tname" id="turnName"></span><div class="die" id="die"></div></div><div class="prompt" id="prompt"></div><div class="btns" id="btns"></div></div>`;
+ b.appendChild(c);
+ const tk=document.createElement('div');tk.className='tokens';tk.id='tokens';b.appendChild(tk);
+ buildMap();setDie(7,false);
+ if(window.ResizeObserver)new ResizeObserver(()=>renderTokens(false)).observe(b);
+}
+const HEPT=Array.from({length:7},(_,k)=>{const a=-Math.PI/2+k*2*Math.PI/7;return`${(50+44*Math.cos(a)).toFixed(1)},${(52+44*Math.sin(a)).toFixed(1)}`}).join(' ');
+function setDie(n,lucky){
+ $('#die').innerHTML=`<svg viewBox="0 0 100 104"><polygon points="${HEPT}" transform="translate(0,5)" fill="${OUT}"/><polygon points="${HEPT}" fill="${lucky?'#ffc93c':'#fff'}" stroke="${OUT}" stroke-width="5" stroke-linejoin="round"/><text x="50" y="55" text-anchor="middle" dominant-baseline="central" font-family="Lilita One,Arial Black,sans-serif" font-size="46" fill="${n===7?'#e23d5c':OUT}">${n}</text></svg>`;
+}
+function buildMap(){
+ const svg=$('#usmap');
+ const paths=USMAP.states.map(s=>{const i=TILES.findIndex(t=>t.code===s.c);return`<path class="st ${i>=0?'gs':''}" data-c="${s.c}" ${i>=0?`data-i="${i}"`:''} d="${s.d}"><title>${s.c}</title></path>`}).join('');
+ const lms=USMAP.states.map(s=>{const i=TILES.findIndex(t=>t.code===s.c);if(i<0)return'';const co=CALLOUT[s.c];const [x,y]=co||[s.x,s.y];
+  const badge=`<g class="bdg" data-i="${i}" transform="translate(${x} ${y})"><circle r="21" cy="2.5" fill="#1d5a60" opacity=".3"/><circle class="rg" r="21" fill="${GCOL[TILES[i].g]}" stroke="${OUT}" stroke-width="2.4"/><circle r="16.5" fill="#fff" stroke="${OUT}" stroke-width="1.8"/><svg x="-13" y="-13" width="26" height="26" viewBox="0 0 64 64">${ICONS[s.c]}</svg></g>`;
+  return co?`<g class="co"><line x1="${s.x}" y1="${s.y}" x2="${x}" y2="${y}"/>${badge}</g>`:badge}).join('');
+ const shd=USMAP.states.filter(s=>TILES.some(t=>t.code===s.c)).map(s=>`<path class="shd" d="${s.d}"/>`).join('');
+ const deco=`<rect class="inset" x="-62" y="452" width="272" height="158" rx="14"/><rect class="inset" x="214" y="518" width="126" height="92" rx="14"/>
+  <text class="ocn" transform="translate(-30 300) rotate(-90)">PACIFIC OCEAN</text>
+  <text class="ocn" x="935" y="372">ATLANTIC</text><text class="ocn" x="935" y="392">OCEAN</text>
+  <text class="ocn" x="610" y="585" style="font-size:13px">GULF OF MEXICO</text>
+  <g transform="translate(935 500)"><circle r="30" fill="#fff" fill-opacity=".7" stroke="${OUT}" stroke-width="2.5"/><polygon points="0,-24 6,0 0,24 -6,0" fill="${OUT}"/><polygon points="0,-24 6,0 -6,0" fill="#e23d5c"/><polygon points="-24,0 0,-6 24,0 0,6" fill="#fff" stroke="${OUT}" stroke-width="1.5"/><text y="-34" text-anchor="middle" font-family="Lilita One,Arial Black" font-size="16" fill="${OUT}">N</text></g>`;
+ svg.innerHTML=`${deco}<g id="mshd">${shd}</g><g id="mstates">${paths}</g><path class="nation" d="${USMAP.n}"/><g id="mlm">${lms}</g><g id="mlv"></g><g id="mapfx"></g>`;
+}
+function mapPt(code){const s=USMAP.states.find(x=>x.c===code);if(!s)return[487,300];return CALLOUT[code]||[s.x,s.y]}
+function mapFx(code,emoji,kind,color){
+ if(window.__FAST)return;const g=$('#mapfx');if(!g)return;const [x,y]=code?mapPt(code):[487,300];
+ const ns='http://www.w3.org/2000/svg';
+ if(kind==='ring'){const c=document.createElementNS(ns,'circle');c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('r',14);c.setAttribute('class','ring');c.style.stroke=color||OUT;g.appendChild(c);setTimeout(()=>c.remove(),1300);return}
+ const t=document.createElementNS(ns,'text');t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('class','fx '+kind);t.textContent=emoji;g.appendChild(t);setTimeout(()=>t.remove(),2100);
+}
+function coinRain(em='🪙'){if(window.__FAST)return;const g=$('#mapfx');const ns='http://www.w3.org/2000/svg';for(let k=0;k<16;k++){const t=document.createElementNS(ns,'text');t.setAttribute('x',60+rnd(860));t.setAttribute('y',40+rnd(120));t.setAttribute('class','fx rain');t.style.animationDelay=(k*0.07)+'s';t.textContent=em;g.appendChild(t);setTimeout(()=>t.remove(),3200)}}
+function shakeMap(){const c=$('#center');c.classList.remove('shake');void c.offsetWidth;c.classList.add('shake')}
+
+function renderTiles(){
+ TILES.forEach((t,i)=>{
+  const el=tileEls[i],s=G.t[i];
+  let html;
+  if(t.type==='go')html=`<div class="lm" style="width:clamp(18px,30cqmin,46px)">${ICON(i)}</div><div class="goTxt">GO</div><div class="nm">${esc(tx(M('领 $200K','Collect $200K')))}</div>`;
+  else if(t.type==='state')html=`<div class="lm">${ICON(i)}</div><div class="tt"><div class="nm">${esc(tx(tn(i)))}</div><div class="pr">${fmt(t.price)}</div></div>`;
+  else html=`<div class="lm">${ICON(i)}</div><div class="tt"><div class="nm">${esc(tx(tn(i)))}</div>${t.price?`<div class="pr">${fmt(t.price)}</div>`:''}</div>`;
+  el.querySelector('.tbody').innerHTML=html;
+  const o=s.owner!=null?G.players[s.owner]:null;
+  el.classList.toggle('owned',!!o);
+  if(t.type==='state'){const band=el.querySelector('.band');const prev=+(band.dataset.lv||0);const key=s.level+'|'+(o?o.char:'');
+   if(band.dataset.key!==key){band.innerHTML=(s.level?bld(s.level,o?o.color:'#ccc',sideOf(i)==='l'||sideOf(i)==='r'):'')+(o?`<div class="ownb" style="aspect-ratio:1">${avatar(o.char)}</div>`:'');band.dataset.key=key;band.classList.toggle('built',s.level>0);
+    if(s.level>prev&&!window.__FAST){band.classList.remove('grow','lux');void band.offsetWidth;band.classList.add('grow');if(s.level===4)band.classList.add('lux');setTimeout(()=>band.classList.remove('grow','lux'),1600)}}
+   band.dataset.lv=s.level}
+  if(o){el.style.setProperty('--oc',o.color);const ob=el.querySelector(':scope > .ownb');if(ob&&ob.dataset.c!==o.char){ob.innerHTML=avatar(o.char);ob.dataset.c=o.char}}
+ });
+}
+function renderTokens(hop){
+ const layer=$('#tokens');if(!layer)return;
+ const b=$('#board');const w=tileEls[1].offsetWidth;b.style.setProperty('--tk',Math.round(Math.max(18,w*0.62))+'px');
+ const live=new Set();
+ G.players.forEach(p=>{
+  let el=layer.querySelector(`[data-p="${p.i}"]`);
+  if(p.bankrupt){if(el)el.remove();return}
+  if(!el){el=document.createElement('div');el.className='tok';el.dataset.p=p.i;el.innerHTML=`<div class="tokIn" style="--pc:${p.color}">${avatar(p.char)}</div>`;layer.appendChild(el)}
+  live.add(el);
+  const same=alive().filter(q=>q.pos===p.pos);const k=same.indexOf(p),n=same.length;
+  const te=tileEls[p.pos];const spread=n>1?(k-(n-1)/2)*w*0.34:0;
+  const vert=sideOf(p.pos)==='l'||sideOf(p.pos)==='r';
+  const x=te.offsetLeft+te.offsetWidth/2+(vert?0:spread),y=te.offsetTop+te.offsetHeight*0.78+(vert?spread*0.6:0);
+  el.style.setProperty('--x',x+'px');el.style.setProperty('--y',y+'px');
+  el.classList.toggle('me',p.i===G.cur&&!G.over);
+  if(hop===p.i){el.classList.remove('hop');void el.offsetWidth;el.classList.add('hop')}
+ });
+ layer.querySelectorAll('.tok').forEach(el=>{if(!live.has(el))el.remove()});
+}
+function renderMap(){
+ document.querySelectorAll('#mstates .gs').forEach(pth=>{const i=+pth.dataset.i;const o=G.t[i].owner!=null?G.players[G.t[i].owner]:null;pth.style.fill=o?o.color:''});
+ document.querySelectorAll('#mlm .bdg').forEach(b=>{const i=+b.dataset.i;const o=G.t[i].owner!=null?G.players[G.t[i].owner]:null;b.querySelector('.rg').style.fill=o?o.color:''});
+ const lv=$('#mlv');if(!lv)return;
+ lv.innerHTML=TILES.map((t,i)=>{if(t.type!=='state'||!G.t[i].level)return'';const [x,y]=mapPt(t.code);const o=G.players[G.t[i].owner];const co=CALLOUT[t.code];const bx=co?x+20:x-27,by=co?y-17:y+13;return`<g class="mb ${G.t[i].level===4?'lux':''}"><svg x="${bx}" y="${by}" width="54" height="34" viewBox="0 0 64 40">${bld(G.t[i].level,o?o.color:'#ccc',false).replace(/^<svg[^>]*>|<\/svg>$/g,'')}</svg></g>`}).join('');
+}
+function renderHeader(){
+ const rb=$('#roundBox');
+ if(!G.started){rb.innerHTML='';$('#fxRow').innerHTML='';return}
+ const r=G.cfg.mode==='rounds'?T('roundNM',{n:Math.min(G.round,G.cfg.rounds),m:G.cfg.rounds}):T('roundN',{n:G.round});
+ const fx=(infl()>1?`<span class="chip gold">${T('infl')} ×${infl()}</span>`:'')+(G.fx.boom>0?`<span class="chip hot">${T('boom')}</span>`:'')+(G.fx.tech>0?`<span class="chip">${T('tech')}</span>`:'');
+ rb.innerHTML=`<span class="rd">${r}</span>`;$('#fxRow').innerHTML=fx;
+}
+function buildCards(){
+ document.querySelectorAll('.pc').forEach(e=>e.remove());
+ const arena=$('#players');
+ G.players.forEach(p=>{const d=document.createElement('section');d.className=`pc slot${p.i}`;d.id='pc'+p.i;d.style.setProperty('--pc',p.color);d.innerHTML=`<div class="ribbon">${T('turn')}</div><div class="pbody"></div>`;arena.appendChild(d)});
+}
+function renderPlayers(){
+ G.players.forEach(p=>{
+  const card=$('#pc'+p.i);if(!card)return;
+  card.classList.toggle('cur',p.i===G.cur&&!G.over&&G.started);card.classList.toggle('out',p.bankrupt);
+  card.querySelector('.ribbon').textContent=T('turn');
+  const chips=[];
+  if(p.bankrupt)chips.push('💀 '+T('bankrupt'));
+  else{if(p.inJail)chips.push(T('inJail'));if(p.skip)chips.push(T('skipTurn')+' ×'+p.skip);if(p.rentFree)chips.push(T('rentFree')+(p.rentFree>1?' ×'+p.rentFree:''));if(p.jailCard)chips.push(T('jailCard'));if(wheelEligible(p))chips.push(T('wheelReady'))}
+  const props=ownedBy(p).map(i=>{const t=TILES[i];return`<i style="--gc:${t.type==='state'?GCOL[t.g]:'#cfd8ea'}" title="${esc(tx(tn(i)))}">${G.t[i].level||''}</i>`}).join('');
+  card.querySelector('.pbody').innerHTML=`<div class="pav">${avatar(p.char)}</div>
+   <div class="pname"><b>${esc(p.name)}</b><span class="ptag">${p.ai?T(p.ai):T('you')}</span></div>
+   <div class="pcash">${fmt(p.cash)}</div>
+   <div class="pstat"><span>${T('worth')} <b>${fmt(worth(p))}</b></span><span>${T('props')} <b>${ownedBy(p).length}</b></span></div>
+   ${chips.length?`<div class="pchips">${chips.map(c=>`<span>${c}</span>`).join('')}</div>`:''}
+   ${props?`<div class="pprops">${props}</div>`:''}`;
+ });
+}
+function renderLog(){$('#log').innerHTML=G.log.slice(-100).reverse().map(e=>`<li class="${e.kind||''}"><span class="dot" style="${e.pi!=null&&G.players[e.pi]?'background:'+G.players[e.pi].color:''}"></span><span>${esc(tx(e.m))}</span></li>`).join('')}
+function renderAll(){renderHeader();renderTiles();renderPlayers();renderMap();renderLog();renderTokens(false)}
+function log(m,pi=null,kind=''){G.log.push({m,pi,kind});if(G.log.length>300)G.log.shift();renderLog()}
+
+/* ================== effects ================== */
+function floatMoney(p,amt){
+ if(!amt||window.__FAST)return;
+ const el=tileEls[p.pos];if(!el)return;const r=el.getBoundingClientRect();
+ const d=document.createElement('div');d.className='fly '+(amt>0?'good':'bad')+(Math.abs(amt)>=500?' big':'');
+ d.textContent=(amt>0?'+':'')+fmt(amt);d.style.left=(r.left+r.width/2)+'px';d.style.top=(r.top+r.height/2)+'px';
+ $('#fx').appendChild(d);setTimeout(()=>d.remove(),1500);
+}
+function toast(m){if(window.__FAST)return;document.querySelectorAll('.toast').forEach(t=>t.remove());const d=document.createElement('div');d.className='toast';d.textContent=tx(m);$('#fx').appendChild(d);setTimeout(()=>d.remove(),2000)}
+function flashTile(i){const el=tileEls[i];if(!el)return;el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash')}
+function say(p,ev){
+ if(window.__FAST||!p)return;const card=$('#pc'+p.i);if(!card)return;
+ const line=(LINES[p.char]||LINES.tex)[ev];if(!line)return;
+ card.querySelectorAll('.bubble').forEach(b=>b.remove());
+ const b=document.createElement('div');b.className='bubble';b.textContent=tx(line);card.appendChild(b);
+ setTimeout(()=>b.remove(),2600);
+}
+
+/* ================== action panel ================== */
+let pendingResolve=null,lastAction=null;
+function renderAction(p,prompt,opts,isAI){
+ lastAction={p,prompt,opts,isAI};
+ const av=$('#turnAv');
+ if(p){av.innerHTML=avatar(p.char);av.style.setProperty('--pc',p.color);$('#turnName').textContent=p.name}else{av.innerHTML='';$('#turnName').textContent=''}
+ $('#prompt').textContent=tx(prompt);
+ $('#btns').innerHTML=opts.map(o=>`<button class="cbtn ${o.primary?'pri':''}" type="button" data-id="${o.id}" ${isAI||o.disabled?'disabled':''}>${esc(tx(o.label))}</button>`).join('')+(isAI&&opts.length?`<div class="thinking">${T('aiThinking')}</div>`:'');
+}
+function choose(p,prompt,opts,aiPick,delay){
+ renderAction(p,prompt,opts,!!p.ai);
+ if(p.ai)return wait(delay??650).then(()=>aiPick());
+ return new Promise(res=>{pendingResolve=id=>{pendingResolve=null;$('#btns').querySelectorAll('button').forEach(b=>b.disabled=true);res(id)}});
+}
+document.addEventListener('click',e=>{const b=e.target.closest('#btns button');if(b&&!b.disabled&&pendingResolve)pendingResolve(b.dataset.id)});
+
+/* ================== modal ================== */
+let modalResolve=null,modalRender=null;
+function openModal(fn,cls='',rerender=true){modalRender=rerender?{fn}:null;$('#sheet').className='sheet '+cls;$('#sheet').innerHTML=fn();$('#modal').hidden=false}
+function closeModal(){$('#modal').hidden=true;modalResolve=null;modalRender=null}
+function modalAct(){return new Promise(res=>{modalResolve=res})}
+$('#sheet').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b&&!b.disabled&&modalResolve){const r=modalResolve;modalResolve=null;r(b.dataset.act)}});
+document.addEventListener('keydown',e=>{
+ if(e.key!==' '&&e.key!=='Enter')return;
+ if(e.target.closest&&e.target.closest('input,select,textarea'))return;
+ if(!$('#deed').hidden||!$('#setup').hidden)return;
+ let b=null;
+ if(!$('#modal').hidden)b=$('#sheet').querySelector('.cbtn.pri:not(:disabled)');
+ else if(pendingResolve)b=$('#btns').querySelector('.cbtn.pri:not(:disabled)');
+ if(b){e.preventDefault();b.click()}
+});
+async function showCard(p,card,kind,tag){
+ sfx('card');
+ const deck=kind==='fate'?M('🎴 命运 FATE','🎴 FATE'):M('❓ 机会 CHANCE','❓ CHANCE');
+ const cls=tag?(tag.k==='leader'?'leader':'extreme'):kind;
+ openModal(()=>`<div class="cardTop">${esc(tx(deck))}</div><div class="cardBody">${tag?`<div class="cardTag">${esc(tx(tag.m))}</div>`:''}<div class="cardIcon">${card.icon}</div><h3>${esc(tx(card.t))}</h3><p>${esc(tx(card.d))}</p><button class="cbtn pri" type="button" data-act="ok">${T('ok')}</button></div>`,'cardSheet '+cls);
+ log(M(`${p.name} 抽到「${card.t.zh}」：${card.d.zh}`,`${p.name} drew "${card.t.en}": ${card.d.en}`),p.i);
+ if(p.ai)await Promise.race([modalAct(),wait(2000)]);else await modalAct();
+ closeModal();
+}
+function tileItem(i){const s=G.t[i],t=TILES[i];return{id:i,em:ICON(i),color:t.type==='state'?GCOL[t.g]:'#e2eeff',label:tn(i),sub:t.type==='state'?M(`${LVN.zh[s.level]} · 租金 ${fmt(stateRent(i))}`,`${LVN.en[s.level]} · Rent ${fmt(stateRent(i))}`):M(fmt(t.price),fmt(t.price))}}
+async function pickFrom(p,title,items,aiFn,allowSkip){
+ if(p.ai){await wait(650);return aiFn(items)}
+ openModal(()=>`<h3>${esc(tx(title))}</h3><div class="plist">${items.map(it=>`<button class="pitem" type="button" data-act="${it.id}" style="--c:${it.color}"><span class="em">${it.em}</span><span>${esc(tx(it.label))}</span><span class="ps">${esc(tx(it.sub))}</span></button>`).join('')}</div>${allowSkip?`<div class="acts"><button class="cbtn" type="button" data-act="skip">${T('skip')}</button></div>`:''}`);
+ const r=await modalAct();closeModal();return r==='skip'?null:+r;
+}
+
+/* ================== money ================== */
+function gain(p,amt){amt=Math.round(amt);if(amt<=0)return;p.cash+=amt;floatMoney(p,amt);sfx('cash');renderPlayers()}
+function liquidate(p,need){
+ const sold=[];
+ while(p.cash<need){
+  const own=ownedBy(p);
+  const built=own.filter(i=>G.t[i].level>0).sort((a,b)=>G.t[b].level-G.t[a].level||TILES[b].price-TILES[a].price);
+  if(built.length){const i=built[0];G.t[i].level--;const back=Math.round(TILES[i].price*UP_COST[G.t[i].level]/2);p.cash+=back;sold.push(M(`${TILES[i].zh}拆一级(+${fmt(back)})`,`${TILES[i].en} −1 level (+${fmt(back)})`));continue}
+  if(own.length){own.sort((a,b)=>TILES[a].price-TILES[b].price);const i=own[0];G.t[i].owner=null;G.t[i].level=0;const back=Math.round(TILES[i].price/2);p.cash+=back;sold.push(M(`抵押${TILES[i].zh}(+${fmt(back)})`,`mortgaged ${TILES[i].en} (+${fmt(back)})`));continue}
+  break;
+ }
+ if(sold.length)log(M(`${p.name} 现金不足，自动变卖：${sold.map(s=>s.zh).join('、')}`,`${p.name} is short on cash and sells: ${sold.map(s=>s.en).join(', ')}`),p.i);
+}
+async function pay(p,amt,to){
+ amt=Math.round(amt);if(amt<=0)return true;
+ if(p.cash<amt)liquidate(p,amt);
+ if(p.cash>=amt){p.cash-=amt;floatMoney(p,-amt);if(to)to.cash+=amt;sfx('pay');renderAll();return true}
+ const left=p.cash;p.cash=0;if(to&&left>0)to.cash+=left;
+ bankrupt(p,to);return false;
+}
+function bankrupt(p,to){
+ p.bankrupt=true;p.inJail=false;G.outOrder=(G.outOrder||0)+1;p.outAt=G.outOrder;
+ G.t.forEach(s=>{if(s.owner===p.i){s.owner=null;s.level=0}});
+ say(p,'broke');
+ log(M(`💀 ${p.name} 破产出局！${to?'剩余现金归 '+to.name+'，':''}地产全部归还银行。`,`💀 ${p.name} is bankrupt!${to?' Remaining cash goes to '+to.name+'.':''} All property returns to the bank.`),p.i,'turn');
+ toast(M(`💀 ${p.name} 破产！`,`💀 ${p.name} is bankrupt!`));sfx('bad');shakeMap();renderAll();
+}
+
+/* ================== movement ================== */
+async function moveSteps(p,n,delay=150){
+ const dir=n<0?-1:1;
+ for(let k=0;k<Math.abs(n);k++){
+  p.pos=(p.pos+dir+NT)%NT;
+  if(dir>0&&p.pos===0){p.cash+=SALARY;floatMoney(p,SALARY);sfx('cash');log(M(`${p.name} 经过起点，领取工资 ${fmt(SALARY)}`,`${p.name} passed GO and collected ${fmt(SALARY)}`),p.i);renderPlayers()}
+  renderTokens(p.i);sfx('tick');await wait(delay);
+ }
+ flashTile(p.pos);
+}
+async function moveTo(p,target){let n=(target-p.pos+NT)%NT;if(n===0)n=NT;await moveSteps(p,n,80)}
+function sendToJail(p){p.pos=JAIL;p.inJail=true;p.jailTries=0;sfx('jail');say(p,'jail');log(M(`🚔 ${p.name} 被送进监狱！`,`🚔 ${p.name} goes to jail!`),p.i);renderAll()}
+async function rollDie(){
+ const d=$('#die');d.classList.remove('lucky');d.classList.add('rolling');sfx('dice');
+ for(let k=0;k<8;k++){setDie(1+rnd(7),false);await wait(70)}
+ const n=1+rnd(7);d.classList.remove('rolling');setDie(n,n===7);
+ if(n===7){d.classList.add('lucky');sfx('lucky')}
+ await wait(260);return n;
+}
+
+/* ================== AI ================== */
+function threat(p){let mx=0;G.t.forEach((s,i)=>{if(s.owner!=null&&s.owner!==p.i){const r=TILES[i].type==='util'?150:rentFor(i,4);if(r>mx)mx=r}});return mx}
+function aiReserve(p){if(p.ai==='easy')return 0;if(p.ai==='normal')return 150;return Math.max(150,Math.min(threat(p),900))}
+function setGain(p,i){const t=TILES[i];return t.type==='state'&&groupIdx(t.g).every(j=>j===i||G.t[j].owner===p.i)}
+function aiBuy(p,i){
+ const t=TILES[i];if(p.ai==='easy')return Math.random()<0.7;
+ const after=p.cash-t.price;
+ if(setGain(p,i))return after>=0;
+ if(p.ai==='normal')return after>=150;
+ const blocks=t.type==='state'&&others(p).some(q=>groupIdx(t.g).filter(j=>j!==i).every(j=>G.t[j].owner===q.i));
+ if(blocks)return after>=40;
+ if(G.round<=5)return after>=100;
+ return after>=aiReserve(p)*0.7;
+}
+function aiUpgrade(p,i){const after=p.cash-upCost(i);if(p.ai==='easy')return Math.random()<0.6;if(p.ai==='normal')return after>=150;return after>=aiReserve(p)*0.6}
+function bestUpgrade(list){return list.reduce((a,b)=>(stateRent(b,G.t[b].level+1)-stateRent(b))>(stateRent(a,G.t[a].level+1)-stateRent(a))?b:a)}
+
+/* ================== cards ================== */
+function auditAmt(p){return ownedBy(p).reduce((s,i)=>s+[0,40,80,115,230][G.t[i].level],0)}
+async function freeUpgrade(p,n=1){
+ for(let k=0;k<n;k++){
+  const list=ownedBy(p).filter(i=>TILES[i].type==='state'&&G.t[i].level<4);
+  if(!list.length){log(M(`${p.name} 没有可以升级的地`,`${p.name} has no state to upgrade`),p.i);return}
+  const i=await pickFrom(p,M('选择一块地免费升级','Pick a state to upgrade for free'),list.map(tileItem),()=>bestUpgrade(list),false);
+  if(i==null)return;
+  G.t[i].level++;sfx('buy');flashTile(i);mapFx(TILES[i].code,'🔨','pop');say(p,'up');
+  log(M(`🔨 ${p.name} 免费把 ${TILES[i].zh} 升级为「${LVN.zh[G.t[i].level]}」`,`🔨 ${p.name} upgraded ${TILES[i].en} to ${LVN.en[G.t[i].level]} for free`),p.i);renderAll();
+ }
+}
+const oppItem=i=>{const it=tileItem(i);it.sub=M(`${G.players[G.t[i].owner].name} · ${fmt(TILES[i].price)}`,`${G.players[G.t[i].owner].name} · ${fmt(TILES[i].price)}`);return it};
+async function swapDeed(p){
+ const mine=ownedBy(p).filter(i=>TILES[i].type==='state'&&G.t[i].level===0);
+ const theirs=G.t.map((s,i)=>i).filter(i=>TILES[i].type==='state'&&G.t[i].owner!=null&&G.t[i].owner!==p.i&&G.t[i].level===0);
+ if(!mine.length||!theirs.length){log(M('没有可以交换的空地，此卡作废','No empty lots to swap. Card has no effect'),p.i);return}
+ const a=await pickFrom(p,M('第 1 步：选你要换出去的地','Step 1: pick your lot to give away'),mine.map(tileItem),()=>mine.reduce((x,y)=>TILES[y].price<TILES[x].price?y:x),true);
+ if(a==null)return;
+ const b=await pickFrom(p,M('第 2 步：选你要换来的对手的地','Step 2: pick the opponent lot you want'),theirs.map(oppItem),()=>{const sg=theirs.filter(i=>setGain(p,i));return sg.length?sg[0]:theirs.reduce((x,y)=>TILES[y].price>TILES[x].price?y:x)},true);
+ if(b==null)return;
+ const q=G.players[G.t[b].owner];G.t[b].owner=p.i;G.t[a].owner=q.i;sfx('buy');mapFx(TILES[b].code,'🔄','pop');
+ log(M(`🔄 ${p.name} 用 ${TILES[a].zh} 换走了 ${q.name} 的 ${TILES[b].zh}`,`🔄 ${p.name} swapped ${TILES[a].en} for ${q.name}'s ${TILES[b].en}`),p.i);renderAll();
+}
+async function takeover(p){
+ const list=G.t.map((s,i)=>i).filter(i=>TILES[i].type==='state'&&G.t[i].owner!=null&&G.t[i].owner!==p.i&&G.t[i].level===0&&TILES[i].price<=p.cash);
+ if(!list.length){log(M('没有可收购的地（或现金不足），此卡作废','Nothing to take over (or not enough cash). Card has no effect'),p.i);return}
+ const i=await pickFrom(p,M('选择要以原价强买的地','Pick a lot to force-buy at list price'),list.map(oppItem),()=>{const sg=list.filter(i=>setGain(p,i));if(sg.length)return sg[0];const ok=list.filter(i=>p.cash-TILES[i].price>=200);return ok.length?ok.reduce((x,y)=>TILES[y].price>TILES[x].price?y:x):null},true);
+ if(i==null)return;
+ const q=G.players[G.t[i].owner];await pay(p,TILES[i].price,q);G.t[i].owner=p.i;sfx('buy');mapFx(TILES[i].code,'',"ring",p.color);say(p,'buy');
+ log(M(`🎯 ${p.name} 以 ${fmt(TILES[i].price)} 强买了 ${q.name} 的 ${TILES[i].zh}`,`🎯 ${p.name} force-bought ${q.name}'s ${TILES[i].en} for ${fmt(TILES[i].price)}`),p.i);renderAll();
+}
+async function visitHome(p){
+ const own=ownedBy(p).filter(i=>TILES[i].type==='state');
+ if(!own.length){log(M(`${p.name} 还没有地，改为获得 $100K`,`${p.name} owns no state yet, collects $100K instead`),p.i);gain(p,100);return}
+ const target=own.reduce((a,b)=>((b-p.pos+NT)%NT)<((a-p.pos+NT)%NT)?b:a);
+ await moveTo(p,target);await land(p,G.lastDice);
+}
+function disaster(codes,em){
+ const hit=[];
+ codes.forEach(c=>{const i=TILES.findIndex(t=>t.code===c);mapFx(c,em,em==='🔥'?'fire':'spin');if(G.t[i].level>0){G.t[i].level--;hit.push(i);flashTile(i)}});
+ if(hit.length){sfx('bad');log(M(`建筑受损：${hit.map(i=>TILES[i].zh).join('、')} 各降一级`,`Damage: ${hit.map(i=>TILES[i].en).join(', ')} lose one level`))}
+ else log(M('幸好这些州还没有建筑','Luckily no buildings there yet'));
+ renderAll();
+}
+function hospitalize(n){return async p=>{p.pos=HOSP;renderTokens(p.i);flashTile(HOSP);await pay(p,100,null);p.skip+=n;say(p,'bad');renderAll()}}
+function topBuilt(p){const own=ownedBy(p).filter(i=>G.t[i].level>0);return own.length?own.reduce((a,b)=>G.t[b].level>G.t[a].level?b:a):null}
+
+const CHANCE=[
+ {icon:'💰',t:M('彩票头奖','Lottery Jackpot'),d:M('获得 $500K','Collect $500K'),run:async p=>{gain(p,500);say(p,'lucky');coinRain('💵')}},
+ {icon:'🔄',t:M('地契互换','Deed Swap'),d:M('用你的一块空地，强制交换对手的一块空地','Swap one of your empty lots for an opponent’s empty lot'),run:swapDeed},
+ {icon:'🎯',t:M('恶意收购','Hostile Takeover'),d:M('以原价强买对手的一块空地','Force-buy an opponent’s empty lot at list price'),run:takeover},
+ {icon:'✈️',t:M('直飞加州','Fly to California'),d:M('直接前往加利福尼亚','Advance to California'),run:async p=>{await moveTo(p,CA_IDX);await land(p,G.lastDice)}},
+ {icon:'🛡️',t:M('免租卡','Rent-Free Pass'),d:M('下一次付租金全免（自动使用）','Skip your next rent payment (used automatically)'),run:async p=>{p.rentFree++}},
+ {icon:'🔓',t:M('出狱卡','Get Out of Jail Free'),d:M('保留此卡，坐牢时可直接出狱','Keep this card to leave jail for free'),run:async p=>{p.jailCard++}},
+ {icon:'💸',t:M('房产查税','Property Audit'),d:M('每栋房子 $40K，酒店 $115K，豪华酒店 $230K','Pay $40K per house, $115K per hotel, $230K per luxury hotel'),run:async p=>{await pay(p,auditAmt(p),null)}},
+ {icon:'🔨',t:M('装修补贴','Renovation Grant'),d:M('免费把你的一块地升一级','Upgrade one of your states one level for free'),run:p=>freeUpgrade(p,1)},
+ {icon:'🏡',t:M('回家看看','Visit Your Property'),d:M('前进到你最近的一块地，可以付费升级','Advance to your nearest state. You may upgrade it'),run:visitHome},
+ {icon:'🚔',t:M('违章被抓','Busted'),d:M('直接去坐牢','Go directly to jail'),run:async p=>sendToJail(p)},
+ {icon:'🏁',t:M('回到起点','Advance to GO'),d:M('前进到起点，领取 $200K','Advance to GO and collect $200K'),run:async p=>{await moveTo(p,0)}},
+ {icon:'↩️',t:M('倒退三步','Go Back 3'),d:M('后退 3 格','Move back 3 spaces'),run:async p=>{await moveSteps(p,-3,130);await land(p,G.lastDice)}},
+ {icon:'🎉',t:M('年终奖','Year-End Bonus'),d:M('获得 $150K','Collect $150K'),run:async p=>gain(p,150)},
+ {icon:'🚓',t:M('超速罚单','Speeding Ticket'),d:M('罚款 $50K','Pay $50K'),run:p=>pay(p,50,null)},
+ {icon:'🎰',t:M('赌城周末','Vegas Weekend'),d:M('前往拉斯维加斯赌场','Advance to the Vegas Casino'),run:async p=>{await moveTo(p,CASINO);await land(p,G.lastDice)}},
+];
+const FATE=[
+ {icon:'⚖️',t:M('劫富济贫','Robin Hood'),d:M('现金最多的玩家给现金最少的玩家 $300K','The player with the most cash pays the one with the least $300K'),run:async()=>{const a=alive().slice().sort((x,y)=>y.cash-x.cash);if(a.length<2)return;const r=a[0],s=a[a.length-1];if(r===s||r.cash===s.cash)return;const amt=Math.min(300,r.cash);r.cash-=amt;s.cash+=amt;floatMoney(s,amt);floatMoney(r,-amt);sfx('cash');say(s,'lucky');log(M(`${r.name} 给 ${s.name} ${fmt(amt)}`,`${r.name} pays ${s.name} ${fmt(amt)}`));renderAll()}},
+ {icon:'🏛️',t:M('房产税改革','Property Tax Reform'),d:M('每人每块地交 $25K，每级建筑再交 $25K','Everyone pays $25K per property plus $25K per building level'),run:async()=>{for(const q of alive()){const own=ownedBy(q);const amt=own.length*25+own.reduce((s,i)=>s+G.t[i].level*25,0);if(amt>0){log(M(`${q.name} 交税 ${fmt(amt)}`,`${q.name} pays ${fmt(amt)} tax`),q.i);await pay(q,amt,null)}}}},
+ {icon:'🌀',t:M('飓风来袭','Hurricane'),d:M('佛罗里达、德克萨斯的建筑各降一级','Florida and Texas each lose one building level'),run:async()=>disaster(['FL','TX'],'🌀')},
+ {icon:'🔥',t:M('加州山火','Wildfire'),d:M('加利福尼亚、内华达的建筑各降一级','California and Nevada each lose one building level'),run:async()=>disaster(['CA','NV'],'🔥')},
+ {icon:'📈',t:M('房市暴涨','Housing Boom'),d:M('全场租金 +50%，持续一轮','All rents +50% for one round'),run:async()=>{G.fx.boom=alive().length+1;coinRain();renderHeader()}},
+ {icon:'📉',t:M('房市崩盘','Market Crash'),d:M('所有人现金 −20%','Everyone loses 20% of their cash'),run:async()=>{alive().forEach(q=>{const l=Math.round(q.cash*.2);q.cash-=l;floatMoney(q,-l)});sfx('bad');shakeMap();renderAll()}},
+ {icon:'🎁',t:M('政府补贴','Government Grant'),d:M('地产最少的玩家获得 $400K','The player(s) with the fewest properties get $400K'),run:async()=>{const a=alive();const mn=Math.min(...a.map(q=>ownedBy(q).length));a.filter(q=>ownedBy(q).length===mn).forEach(q=>{gain(q,400);log(M(`${q.name} 获得补贴 $400K`,`${q.name} receives $400K`),q.i)})}},
+ {icon:'💻',t:M('科技热潮','Tech Boom'),d:M('加州、华盛顿租金翻倍，持续两轮','California and Washington rents x2 for two rounds'),run:async()=>{G.fx.tech=alive().length*2+1;mapFx('CA','💻','pop');mapFx('WA','💻','pop');renderHeader()}},
+ {icon:'🎂',t:M('生日快乐','Happy Birthday'),d:M('其他每位玩家给你 $50K','Each other player pays you $50K'),run:async p=>{for(const q of others(p))await pay(q,50,p);floatMoney(p,50*others(p).length);say(p,'earn')}},
+ {icon:'🏦',t:M('银行出错','Bank Error'),d:M('银行算错账，你获得 $200K','Bank error in your favor. Collect $200K'),run:async p=>{gain(p,200);say(p,'lucky')}},
+ {icon:'🏥',t:M('意外住院','Hospitalized'),d:M('前往医院，付 $100K，停一回合','Go to Hospital, pay $100K and skip one turn'),run:hospitalize(1)},
+ {icon:'💵',t:M('全民发钱','Stimulus Check'),d:M('所有玩家各得 $100K','Every player collects $100K'),run:async()=>{alive().forEach(q=>gain(q,100));coinRain('💵')}},
+];
+const LEADER_FATE=[
+ {icon:'🕵️',t:M('反垄断调查','Antitrust Probe'),d:M('领先者被调查，支付总资产的 10%','The leader pays 10% of net worth'),run:async p=>{say(p,'bad');await pay(p,Math.round(worth(p)*.1),null)}},
+ {icon:'🥂',t:M('慈善晚宴','Charity Gala'),d:M('你给其他每位玩家 $100K','Give each other player $100K'),run:async p=>{for(const q of others(p)){if(p.bankrupt)break;await pay(p,100,q);floatMoney(q,100)}}},
+ {icon:'🔥',t:M('豪宅失火','Mansion Fire'),d:M('你等级最高的地降一级','Your highest-level state loses one level'),run:async p=>{const i=topBuilt(p);if(i==null){log(M('你还没有建筑，逃过一劫','No buildings yet. You got lucky'),p.i);return}G.t[i].level--;flashTile(i);mapFx(TILES[i].code,'🔥','fire');sfx('bad');say(p,'bad');log(M(`${TILES[i].zh} 降为「${LVN.zh[G.t[i].level]}」`,`${TILES[i].en} drops to ${LVN.en[G.t[i].level]}`),p.i);renderAll()}},
+ FATE[1],FATE[5],
+];
+const EXTREME_GOOD=[
+ {icon:'💎',t:M('超级大奖','Mega Jackpot'),d:M('获得 $1M','Collect $1M'),run:async p=>{gain(p,1000);say(p,'lucky');coinRain('💎')}},
+ {icon:'🦹',t:M('逆袭夺金','Comeback Heist'),d:M('拿走领先者 30% 的现金','Take 30% of the leader’s cash'),run:async p=>{const l=leaderOther(p);if(!l)return;const amt=Math.round(l.cash*.3);l.cash-=amt;gain(p,amt);say(p,'lucky');log(M(`${p.name} 从 ${l.name} 手中拿走 ${fmt(amt)}`,`${p.name} takes ${fmt(amt)} from ${l.name}`),p.i);renderAll()}},
+ {icon:'🏴',t:M('强占地盘','Land Grab'),d:M('免费拿走领先者的一块地（两栋房子以下）','Take one of the leader’s states (2 houses or less) for free'),run:async p=>{const l=leaderOther(p);if(!l)return;const list=ownedBy(l).filter(i=>TILES[i].type==='state'&&G.t[i].level<=2);if(!list.length){log(M('领先者没有可抢的地，改为获得 $300K','The leader has nothing to grab. Collect $300K instead'),p.i);gain(p,300);return}const i=await pickFrom(p,M(`选择要从 ${l.name} 手里抢的地`,`Pick a state to take from ${l.name}`),list.map(tileItem),()=>{const sg=list.filter(i=>setGain(p,i));return sg.length?sg[0]:list.reduce((a,b)=>TILES[b].price+buildValue(b)>TILES[a].price+buildValue(a)?b:a)},false);if(i==null)return;G.t[i].owner=p.i;sfx('buy');flashTile(i);mapFx(TILES[i].code,'🏴','pop');say(p,'lucky');log(M(`🏴 ${p.name} 抢走了 ${l.name} 的 ${TILES[i].zh}`,`🏴 ${p.name} grabbed ${TILES[i].en} from ${l.name}`),p.i);renderAll()}},
+ {icon:'🏗️',t:M('双倍装修','Double Renovation'),d:M('免费升级两次','Two free upgrades'),run:p=>freeUpgrade(p,2)},
+];
+const EXTREME_BAD=[
+ {icon:'📉',t:M('投资失败','Bad Investment'),d:M('损失 $500K','Lose $500K'),run:async p=>{say(p,'bad');await pay(p,500,null)}},
+ {icon:'🚑',t:M('重病住院','Long Hospital Stay'),d:M('前往医院，付 $100K，停两回合','Go to Hospital, pay $100K and skip two turns'),run:hospitalize(2)},
+ {icon:'🏚️',t:M('房屋倒塌','Building Collapse'),d:M('你等级最高的地降两级','Your highest-level state loses two levels'),run:async p=>{const i=topBuilt(p);if(i==null){log(M('你还没有建筑，逃过一劫','No buildings yet. You got lucky'),p.i);return}G.t[i].level=Math.max(0,G.t[i].level-2);flashTile(i);mapFx(TILES[i].code,'💥','pop');shakeMap();sfx('bad');say(p,'bad');renderAll()}},
+ {icon:'🎭',t:M('遭遇诈骗','Scammed'),d:M('付给领先者 $200K','Pay the leader $200K'),run:async p=>{const l=leaderOther(p);say(p,'bad');await pay(p,200,l)}},
+];
+async function drawCard(p,kind){
+ let card,tag=null;
+ if(isTrailing(p)&&Math.random()<0.7){card=pick(Math.random()<0.5?EXTREME_GOOD:EXTREME_BAD);tag={k:'ext',m:M('🎲 落后者 · 极端卡','🎲 Underdog wild card')}}
+ else if(kind==='fate'&&isLeader(p)&&Math.random()<0.5){card=pick(LEADER_FATE);tag={k:'leader',m:M('🌳 树大招风','🌳 Tall trees catch the wind')}}
+ else card=pick(kind==='chance'?CHANCE:FATE);
+ await showCard(p,card,kind,tag);
+ await card.run(p);
+ renderAll();
+}
+
+/* ================== tiles ================== */
+async function land(p,dice){
+ const i=p.pos,t=TILES[i],s=G.t[i];
+ flashTile(i);
+ if(BUYABLE(t)){
+  if(s.owner==null){
+   if(p.cash>=t.price){
+    const rentTxt=t.type==='state'?M(fmt(stateRent(i,0)),fmt(stateRent(i,0))):t.type==='rail'?M('$50K 起','from $50K'):M('点数×$20K','die × $20K');
+    const c=await choose(p,M(`${t.zh} 无人拥有，价格 ${fmt(t.price)}（基础租金 ${rentTxt.zh}）。要买吗？`,`${t.en} is for sale: ${fmt(t.price)} (base rent ${rentTxt.en}). Buy it?`),[{id:'buy',label:M(`买下 ${fmt(t.price)}`,`Buy ${fmt(t.price)}`),primary:true},{id:'pass',label:M('不买','Pass')}],()=>aiBuy(p,i)?'buy':'pass');
+    if(c==='buy'){p.cash-=t.price;s.owner=p.i;floatMoney(p,-t.price);sfx('buy');say(p,'buy');if(t.code)mapFx(t.code,'',"ring",p.color);
+     log(M(`🏠 ${p.name} 买下 ${t.zh}（${fmt(t.price)}）`,`🏠 ${p.name} bought ${t.en} for ${fmt(t.price)}`),p.i);
+     if(t.type==='state'&&hasSet(p.i,t.g)){log(M(`🌈 ${p.name} 集齐了「${GROUPS[t.g].zh}」！租金翻倍`,`🌈 ${p.name} owns all of ${GROUPS[t.g].en}! Rents doubled`),p.i);toast(M(`🌈 集齐 ${GROUPS[t.g].zh}！`,`🌈 ${GROUPS[t.g].en} complete!`));sfx('lucky')}
+     renderAll()}
+    else log(M(`${p.name} 没有买 ${t.zh}`,`${p.name} passed on ${t.en}`),p.i);
+   }else log(M(`${p.name} 现金不够买 ${t.zh}`,`${p.name} can't afford ${t.en}`),p.i);
+  }else if(s.owner===p.i){
+   if(t.type==='state'&&s.level<4){
+    const cost=upCost(i);
+    if(p.cash>=cost){
+     const nr=stateRent(i,s.level+1);
+     const cost2=s.level<=2?cost+Math.round(t.price*UP_COST[s.level+1]):null;
+     const opts=[{id:'up',label:M(`升 1 级 ${fmt(cost)}`,`+1 level ${fmt(cost)}`),primary:true}];
+     if(cost2&&p.cash>=cost2)opts.push({id:'up2',label:M(`升 2 级「${LVN.zh[s.level+2]}」${fmt(cost2)}`,`+2 levels (${LVN.en[s.level+2]}) ${fmt(cost2)}`)});
+     opts.push({id:'no',label:M('暂不升级','Not now')});
+     const c=await choose(p,M(`回到自己的 ${t.zh}！花 ${fmt(cost)} 升级为「${LVN.zh[s.level+1]}」，租金变成 ${fmt(nr)}？`,`Back at your ${t.en}! Pay ${fmt(cost)} to upgrade to ${LVN.en[s.level+1]} (rent ${fmt(nr)})?`),opts,()=>{if(cost2&&p.cash>=cost2&&p.ai!=='easy'&&p.cash-cost2>=aiReserve(p))return'up2';return aiUpgrade(p,i)?'up':'no'});
+     if(c==='up'||c==='up2'){const paid=c==='up2'?cost2:cost;p.cash-=paid;s.level+=c==='up2'?2:1;floatMoney(p,-paid);sfx('buy');say(p,'up');mapFx(t.code,'🔨','pop');if(s.level===4){sfx('lucky');toast(M('🏰 豪华酒店！','🏰 Luxury Hotel!'))}log(M(`🔨 ${p.name} 把 ${t.zh} 升级为「${LVN.zh[s.level]}」`,`🔨 ${p.name} upgraded ${t.en} to ${LVN.en[s.level]}`),p.i);renderAll()}
+    }else log(M(`${p.name} 现金不够升级 ${t.zh}`,`${p.name} can't afford to upgrade ${t.en}`),p.i);
+   }else log(M(`${p.name} 回到自己的 ${t.zh}`,`${p.name} is back at ${t.en}`),p.i);
+  }else{
+   const o=G.players[s.owner];const r=rentFor(i,dice);
+   if(p.rentFree>0){p.rentFree--;log(M(`🛡 ${p.name} 使用免租卡，免付 ${o.name} ${fmt(r)}`,`🛡 ${p.name} used a rent-free pass and skips ${fmt(r)} to ${o.name}`),p.i);say(p,'lucky');renderAll()}
+   else{log(M(`${p.name} 付给 ${o.name} 租金 ${fmt(r)}（${t.zh}）`,`${p.name} pays ${o.name} ${fmt(r)} rent (${t.en})`),p.i);if(r>=500){toast(M(`💸 ${fmt(r)} 租金！`,`💸 ${fmt(r)} rent!`));shakeMap()}say(o,'earn');setTimeout(()=>say(p,'pay'),900);const ok=await pay(p,r,o);if(ok)o.stats.rent+=r}
+  }
+  return;
+ }
+ switch(t.type){
+  case 'chance':await drawCard(p,'chance');break;
+  case 'fate':await drawCard(p,'fate');break;
+  case 'tax':{const amt=Math.max(50,Math.round(worth(p)*.1));log(M(`🏛 ${p.name} 向国税局缴纳 ${fmt(amt)}（总资产 10%）`,`🏛 ${p.name} pays ${fmt(amt)} to the IRS (10% of net worth)`),p.i);say(p,'pay');await pay(p,amt,null);break}
+  case 'hospital':log(M(`🏥 ${p.name} 支付医疗费 $100K`,`🏥 ${p.name} pays a $100K medical bill`),p.i);await pay(p,100,null);break;
+  case 'casino':await casino(p);break;
+  case 'gotojail':sendToJail(p);break;
+  case 'jail':log(M(`${p.name} 来监狱探监`,`${p.name} is just visiting the jail`),p.i);break;
+ }
+}
+async function casino(p){
+ if(p.cash<100){log(M(`${p.name} 现金不足 $100K，不能下注`,`${p.name} has under $100K and can't bet`),p.i);return}
+ const opts=[{id:'b100',label:M('下注 $100K','Bet $100K')}];
+ if(p.cash>=300)opts.push({id:'b300',label:M('下注 $300K','Bet $300K')});
+ opts.push({id:'allin',label:M(`全押 ${fmt(p.cash)}`,`All-in ${fmt(p.cash)}`),primary:true},{id:'skip',label:M('不赌','Walk away')});
+ const c=await choose(p,M('🎰 欢迎来到拉斯维加斯！要不要赌一把？','🎰 Welcome to Vegas! Feeling lucky?'),opts,()=>{
+  if(p.ai==='easy'){const r=Math.random();if(r<.15)return'allin';if(r<.45)return p.cash>=300?'b300':'b100';if(r<.8)return'b100';return'skip'}
+  if(p.ai==='normal')return p.cash>=700?'b100':'skip';
+  return isTrailing(p)&&p.cash>=300?'b300':'skip'});
+ if(c==='skip'){log(M(`${p.name} 没有下注`,`${p.name} walks away from the table`),p.i);return}
+ const bet=c==='b100'?100:c==='b300'?300:p.cash;
+ const side=await choose(p,M(`下注 ${fmt(bet)}：押小（1–3）还是押大（5–7）？掷出 4 庄家赢。`,`Bet ${fmt(bet)}: Small (1–3) or Big (5–7)? A 4 means the house wins.`),[{id:'small',label:M('押小 1–3','Small 1–3'),primary:true},{id:'big',label:M('押大 5–7','Big 5–7'),primary:true}],()=>Math.random()<.5?'small':'big');
+ const n=await rollDie();
+ const win=side==='small'?n<=3:n>=5;
+ if(win){gain(p,bet);p.stats.casino+=bet;say(p,'lucky');coinRain('🪙');log(M(`🎰 掷出 ${n}，${p.name} 赢了 ${fmt(bet)}！`,`🎰 Rolled ${n}. ${p.name} wins ${fmt(bet)}!`),p.i);
+  if(n===7){toast(M('🍀 幸运 7！免费升级','🍀 Lucky 7! Free upgrade'));log(M('赢了还是幸运 7，奖励一次免费升级！','A winning lucky 7! Free upgrade bonus'),p.i);await freeUpgrade(p,1)}}
+ else{p.cash-=bet;floatMoney(p,-bet);p.stats.casino-=bet;sfx('bad');say(p,'bad');log(M(`🎰 掷出 ${n}，${p.name} 输掉 ${fmt(bet)}`,`🎰 Rolled ${n}. ${p.name} loses ${fmt(bet)}`),p.i)}
+ renderAll();
+}
+async function jailTurn(p){
+ const opts=[];
+ if(p.cash>=100)opts.push({id:'pay',label:M('付 $100K 保释','Pay $100K bail')});
+ if(p.jailCard)opts.push({id:'card',label:M('使用出狱卡','Use jail card')});
+ opts.push({id:'roll',label:M('🎲 掷 6 或 7 出狱','🎲 Roll 6 or 7 to escape'),primary:true});
+ const c=await choose(p,M(`${p.name} 在监狱里（第 ${p.jailTries+1}/2 次尝试）`,`${p.name} is in jail (try ${p.jailTries+1} of 2)`),opts,()=>{
+  if(p.ai==='easy')return'roll';
+  if(p.jailCard&&unownedCount()>4)return'card';
+  if(p.ai==='normal')return p.cash>=500&&unownedCount()>6?'pay':'roll';
+  return unownedCount()>8&&p.cash>=400?'pay':'roll'});
+ if(c==='pay'){await pay(p,100,null);p.inJail=false;log(M(`${p.name} 付 $100K 保释出狱`,`${p.name} paid $100K bail`),p.i);renderAll();return'free'}
+ if(c==='card'){p.jailCard--;p.inJail=false;log(M(`${p.name} 使用出狱卡`,`${p.name} used a jail card`),p.i);renderAll();return'free'}
+ const n=await rollDie();G.lastDice=n;
+ if(n>=6){p.inJail=false;say(p,'lucky');log(M(`${p.name} 掷出 ${n}，越狱成功！`,`${p.name} rolled ${n} and walks free!`),p.i);await moveSteps(p,n);await land(p,n);return'moved'}
+ p.jailTries++;
+ if(p.jailTries>=2){log(M(`${p.name} 两次失败，付 $100K 出狱`,`${p.name} failed twice and pays $100K to leave`),p.i);const ok=await pay(p,100,null);p.inJail=false;if(!ok)return'moved';await moveSteps(p,n);await land(p,n);return'moved'}
+ log(M(`${p.name} 掷出 ${n}，继续坐牢`,`${p.name} rolled ${n} and stays in jail`),p.i);renderAll();return'stay';
+}
+
+/* ================== wheel ================== */
+const WHEEL=[{id:'steal',w:15,c:'#ffc93c',l:M('夺第一名 30% 现金','Take 30% of leader cash')},{id:'cash',w:20,c:'#7be07b',l:M('+$800K','+$800K')},{id:'none',w:35,c:'#d9d2ee',l:M('什么都没有','Nothing')},{id:'half',w:30,c:'#ff8a8d',l:M('失去一半现金','Lose half your cash')}];
+async function spinWheel(p){
+ const total=WHEEL.reduce((s,w)=>s+w.w,0);let acc=0;const segs=WHEEL.map(w=>{const a0=acc/total*360;acc+=w.w;return{...w,a0,a1:acc/total*360}});
+ const grad=segs.map(s=>`${s.c} ${s.a0}deg ${s.a1}deg`).join(',');
+ const labels=segs.map(s=>`<div class="wl" style="transform:rotate(${(s.a0+s.a1)/2-90}deg)">${esc(tx(s.l))}</div>`).join('');
+ openModal(()=>`<h3 style="text-align:center">🎡 ${T('wheelTitle')}</h3><p style="text-align:center">${esc(tx(M('只有大幅落后时才能转，每 3 回合最多一次。','Only for players far behind. Once every 3 turns.')))}</p><div class="wheelBox"><div class="pointer"></div><div class="wheel" id="wheel" style="background:conic-gradient(${grad})">${labels}</div><div class="hub" style="--pc:${p.color}">${avatar(p.char)}</div></div><div class="wres" id="wres"></div><div class="acts" style="justify-content:center"><button class="cbtn pri" type="button" data-act="spin" id="spinBtn" ${p.ai?'disabled':''}>${T('spin')}</button></div>`,'wide',false);
+ if(p.ai)await wait(700);else await modalAct();
+ const btn=$('#spinBtn');if(btn)btn.disabled=true;
+ let r=Math.random()*total,k=0;while(r>=WHEEL[k].w){r-=WHEEL[k].w;k++}
+ const sg=segs[k];const theta=sg.a0+(sg.a1-sg.a0)*(0.2+0.6*Math.random());
+ const wh=$('#wheel');if(wh)wh.style.transform=`rotate(${360*5+(360-theta)}deg)`;
+ for(let j=0;j<12;j++){sfx('tick');await wait(j<8?140:300)}
+ await wait(400);
+ p.wheelCD=3;
+ let res;
+ if(sg.id==='steal'){const l=leaderOther(p);const amt=l?Math.round(l.cash*.3):0;if(l){l.cash-=amt;gain(p,amt)}res=M(`🎉 头奖！从 ${l?l.name:''} 手中拿走 ${fmt(amt)}`,`🎉 Jackpot! Took ${fmt(amt)} from ${l?l.name:''}`);sfx('win');say(p,'lucky')}
+ else if(sg.id==='cash'){gain(p,800);res=M('💰 获得 $800K','💰 Collected $800K');say(p,'lucky')}
+ else if(sg.id==='none'){res=M('😐 什么都没有','😐 Nothing happens')}
+ else{const l=Math.floor(p.cash/2);p.cash-=l;floatMoney(p,-l);sfx('bad');say(p,'bad');res=M(`💀 失去一半现金（${fmt(l)}）`,`💀 Lost half your cash (${fmt(l)})`)}
+ const wr=$('#wres');if(wr)wr.textContent=tx(res);
+ log(M(`🎡 ${p.name} 转动逆天改命转盘：${res.zh}`,`🎡 ${p.name} spun the Comeback Wheel: ${res.en}`),p.i);renderAll();
+ await wait(1600);closeModal();
+}
+
+/* ================== turn loop ================== */
+async function turnLoop(){try{await playTurn()}catch(e){if(e&&e.message==='aborted')return;console.error(e)}}
+async function playTurn(){
+ if(G.over)return;
+ const p=G.players[G.cur];
+ if(p.bankrupt)return advance();
+ renderAll();
+ if(p.wheelCD>0)p.wheelCD--;
+ log(M(`—— ${p.name} 的回合 ——`,`—— ${p.name}'s turn ——`),p.i,'turn');
+ if(p.skip>0){p.skip--;renderAction(p,M('在医院休养，跳过本回合','Recovering in hospital. Turn skipped'),[],!!p.ai);log(M(`💤 ${p.name} 在医院休养，跳过本回合`,`💤 ${p.name} is in hospital and skips this turn`),p.i);renderPlayers();await wait(1200);return advance()}
+ if(wheelEligible(p)){
+  const c=await choose(p,M('🎡 你大幅落后！要不要转一次「逆天改命」转盘？','🎡 You are far behind! Spin the Comeback Wheel?'),[{id:'spin',label:M('转转盘','Spin the wheel'),primary:true},{id:'no',label:M('不转','No thanks')}],()=>{if(p.ai==='easy')return'spin';if(p.ai==='normal')return Math.random()<.6?'spin':'no';return p.cash<500?'spin':'no'});
+  if(c==='spin')await spinWheel(p);
+ }
+ if(p.inJail){const r=await jailTurn(p);if(r!=='free')return advance()}
+ let sevens=0;
+ while(true){
+  await choose(p,sevens?M('🍀 幸运 7！再掷一次','🍀 Lucky 7! Roll again'):M('轮到你了，掷骰子吧','Your turn. Roll the die'),[{id:'roll',label:M('🎲 掷骰子','🎲 Roll'),primary:true}],()=>'roll',450);
+  renderAction(p,M('骰子滚动中…','Rolling…'),[],!!p.ai);
+  const n=await rollDie();G.lastDice=n;
+  log(M(`${p.name} 掷出 ${n}${n===7?'（幸运 7，再走一次）':''}`,`${p.name} rolled ${n}${n===7?' (lucky 7, roll again)':''}`),p.i);
+  if(n===7){sevens++;if(sevens===3){log(M('连续三次 7，太嚣张，被抓了！','Three 7s in a row. Too lucky. Busted!'),p.i);sendToJail(p);break}toast(M('🍀 幸运 7！','🍀 Lucky 7!'))}
+  await moveSteps(p,n);
+  await land(p,n);
+  renderAll();
+  if(p.bankrupt||p.inJail||G.over||n!==7)break;
+ }
+ return advance();
+}
+function checkEnd(){const a=alive();if(a.length<=1)return true;if(G.cfg.mode==='first'&&G.players.some(p=>p.bankrupt))return true;return false}
+async function advance(){
+ if(G.over)return;
+ if(G.fx.boom>0)G.fx.boom--;if(G.fx.tech>0)G.fx.tech--;
+ if(checkEnd())return endGame();
+ const n=G.players.length;let nx=G.cur,wrapped=false;
+ do{nx=(nx+1)%n;if(nx===0)wrapped=true}while(G.players[nx].bankrupt);
+ if(wrapped){G.round++;if(G.cfg.mode==='rounds'&&G.round>G.cfg.rounds)return endGame();
+  if((G.round-1)%5===0){log(M(`🏷 第 ${G.round} 轮：租金通胀！全场租金变为 ×${infl()}`,`🏷 Round ${G.round}: rent inflation! All rents are now x${infl()}`),null,'turn');toast(M(`🏷 租金通胀 ×${infl()}`,`🏷 Rent inflation x${infl()}`));coinRain('🏷️')}}
+ G.cur=nx;renderAll();
+ const run=RUN;setTimeout(()=>{if(run===RUN)turnLoop()},window.__FAST?0:450);
+}
+function endGame(){
+ G.over=true;if(G.cfg.mode==='rounds')G.round=Math.min(G.round,G.cfg.rounds);
+ const ranked=G.players.slice().sort((a,b)=>{if(a.bankrupt!==b.bankrupt)return a.bankrupt?1:-1;if(a.bankrupt)return(b.outAt||0)-(a.outAt||0);return worth(b)-worth(a)});
+ const win=ranked[0];
+ const titles=[];
+ const top=(f,key,cond)=>{const best=G.players.reduce((a,b)=>f(b)>f(a)?b:a);if(cond(f(best)))titles.push({k:key,p:best})};
+ top(p=>p.stats.rent,'titleRent',v=>v>0);top(p=>ownedBy(p).length,'titleLand',v=>v>0);top(p=>p.stats.casino,'titleCasino',v=>v>0);top(p=>-p.stats.casino,'titleLoser',v=>v>0);
+ G.result={ranked,win,titles};
+ renderAll();renderAction(win,M('游戏结束','Game over'),[],true);$('#btns').innerHTML='';
+ log(M(`🏆 游戏结束，${win.name} 获胜！`,`🏆 Game over. ${win.name} wins!`),win.i,'turn');
+ sfx('win');say(win,'lucky');coinRain('🎉');showGameOver();
+}
+function showGameOver(){
+ const {ranked,win,titles}=G.result;
+ const order=ranked.length===3?[ranked[1],ranked[0],ranked[2]]:[ranked[1],ranked[0]];
+ const hts={0:150,1:105,2:75};
+ openModal(()=>`<h2 class="goTitle">${T('gameOver').toUpperCase()}</h2><p style="text-align:center;font-weight:700;font-size:18px;margin:6px 0 4px">${esc(T('wins',{name:win.name}))}</p>
+ <div class="podium">${order.map(p=>{const rk=ranked.indexOf(p);return`<div class="pod" style="--pc:${p.color}"><div class="av">${avatar(p.char)}</div><div class="nm2">${esc(p.name)}</div><div class="w2">${p.bankrupt?'💀 '+T('bankrupt'):fmt(worth(p))}</div><div class="blk" style="height:${hts[rk]}px">${rk+1}</div></div>`}).join('')}</div>
+ <div class="titles">${titles.map(t=>`<span class="chip">${T(t.k)} · ${esc(t.p.name)}</span>`).join('')}</div>
+ <div class="acts" style="justify-content:center"><button class="cbtn" type="button" data-act="setup">${T('setupAgain')}</button><button class="cbtn pri" type="button" data-act="again">${T('playAgain')}</button></div>`,'wide');
+ modalAct().then(a=>{closeModal();if(a==='again')startGame(G.cfg);else showSetup()});
+}
+
+/* ================== deed & rules ================== */
+const SPECIAL_DESC={
+ go:M('经过或停在起点，领取工资 $200K。','Pass or land on GO to collect a $200K salary.'),
+ jail:M('停在这里只是探监。坐牢时可以：付 $100K 保释、用出狱卡，或掷出 6 或 7 出狱；第 2 次失败须付 $100K 出狱。','Landing here is just visiting. In jail: pay $100K bail, use a jail card, or roll a 6 or 7. After 2 failed rolls you pay $100K and move.'),
+ casino:M('可下注 $100K / $300K / 全押，押小（1–3）或大（5–7），掷出 4 庄家赢。猜中赢一倍；猜中且是幸运 7，再奖励一次免费升级。','Bet $100K, $300K or all-in on Small (1–3) or Big (5–7). A 4 means the house wins. Win pays 1:1; a winning lucky 7 also gives a free upgrade.'),
+ gotojail:M('直接进监狱，不经过起点。','Go directly to jail. Do not collect salary.'),
+ hospital:M('停在这里要支付医疗费 $100K。住院卡会让你停一到两回合。','Pay a $100K medical bill. Hospital cards also make you skip turns.'),
+ tax:M('缴纳你总资产的 10%（最少 $50K）。','Pay 10% of your net worth (minimum $50K).'),
+ chance:M('个人运气卡：彩票、互换地契、恶意收购、免费升级……落后时可能抽到极端卡。','Personal luck: lottery, deed swaps, takeovers, free upgrades. Players far behind may draw wild cards.'),
+ fate:M('全场大事件：飓风、山火、房市暴涨或崩盘……领先者更容易被针对。','Events for everyone: hurricanes, wildfires, booms and crashes. Leaders get targeted more often.'),
+ rail:M('铁路和机场都算交通。拥有 1 / 2 / 3 / 4 个，租金 $50K / $100K / $200K / $400K。','Railroads and airports count together. Own 1 / 2 / 3 / 4 for $50K / $100K / $200K / $400K rent.'),
+ util:M('租金 = 骰子点数 × $20K；两家公司都拥有时 × $50K。','Rent = die roll × $20K, or × $50K if you own both.')
+};
+let deedRender=null;
+function openDeed(i){
+ const t=TILES[i],s=G.t[i];const o=s.owner!=null?G.players[s.owner]:null;
+ const fn=()=>{
+  if(t.type==='state'){
+   const setOn=o&&hasSet(o.i,t.g);
+   const rows=[0,1,2,3,4].map(l=>`<tr class="${o&&s.level===l?'now':''}"><td><span class="dbld">${bld(l,o?o.color:'#c9bfe6',false)}</span>${LVN[LANG][l]}</td><td>${fmt(t.price*LV_MULT[l])}</td></tr>`).join('');
+   return`<div class="deedHead" style="--gc:${GCOL[t.g]}"><span class="em">${ICON(i)}</span><div><div class="dc">${t.code}</div><div class="dn">${esc(tx(tn(i)))} · ${esc(tx(GROUPS[t.g]))}</div></div></div>
+   <div class="meta"><span>${T('price')}</span><span>${fmt(t.price)}</span><span>${T('owner')}</span><span>${o?esc(o.name):T('none')}</span><span>${T('upCost')}</span><span>${UP_COST.map(c=>fmt(t.price*c)).join(' → ')}</span>${o?`<span>${T('curRent')}</span><span style="font-weight:700">${fmt(stateRent(i))}</span>`:''}</div>
+   <table class="rtab">${rows}</table>${infl()>1?`<p style="margin:8px 0 0;font-size:13px">${T('infl')} ×${infl()}</p>`:''}<p style="margin-top:8px;font-size:13px;font-weight:${setOn?700:500}">🌈 ${T('setBonus')}</p>
+   <div class="acts"><button class="cbtn pri" type="button" data-close>${T('close')}</button></div>`;
+  }
+  return`<h3><span class="sicon">${ICON(i)}</span>${esc(tx(tn(i)))}</h3>${t.price?`<div class="meta"><span>${T('price')}</span><span>${fmt(t.price)}</span><span>${T('owner')}</span><span>${o?esc(o.name):T('none')}</span></div>`:''}<p>${esc(tx(SPECIAL_DESC[t.type]))}</p><div class="acts"><button class="cbtn pri" type="button" data-close>${T('close')}</button></div>`;
+ };
+ deedRender=fn;$('#deedSheet').className='sheet';$('#deedSheet').innerHTML=fn();$('#deed').hidden=false;
+}
+$('#deed').addEventListener('click',e=>{if(e.target.id==='deed'||e.target.closest('[data-close]')){$('#deed').hidden=true;deedRender=null}
+ const y=e.target.closest('[data-confirm]');if(y){$('#deed').hidden=true;deedRender=null;if(y.dataset.confirm==='yes'){abortGame();showSetup()}}});
+document.addEventListener('click',e=>{const g=e.target.closest('#usmap .gs,#usmap .bdg');if(g)openDeed(+g.dataset.i)});
+const RULES={
+zh:`<h4>🎯 目标</h4><ul><li>买下美国各州、升级建筑、收租，成为总资产最高的大亨。总资产 = 现金 + 地价 + 建筑投入。</li></ul>
+<h4>🎲 七面骰子</h4><ul><li>每回合掷一颗 1–7 的骰子前进。经过起点领工资 $200K。</li><li><b>7 是幸运数字</b>：掷出 7 可以再走一次；连续三次 7 会被抓去坐牢。</li></ul>
+<h4>🏠 买地与升级</h4><ul><li>停在无人的地可以买；不买就保持空地。停在别人的地要付租金。</li><li>只有停到自己的地才能升级：空地 → 一栋房子 → 两栋房子 → 酒店 → 豪华酒店，每次可升 1 或 2 级。</li><li>「装修补贴」等卡片、赌场赢且掷出 7，可以免费升级。</li><li>集齐同色 3 个州，所有等级租金 ×2。</li></ul>
+<h4>🏷 租金通胀</h4><ul><li>每 5 轮，全场所有租金 +50%（第 6 轮 ×1.5，第 11 轮 ×2……）。越到后面越刺激。</li></ul>
+<h4>🏛 功能格</h4><ul><li>🚂✈️ 铁路和机场一起算交通；⚡💧 公共事业；🏛 国税局交 10%；🏥 医院付 $100K；🎰 赌场押大小；🔒 监狱掷 6 或 7 出狱。</li></ul>
+<h4>🔥 翻盘机制</h4><ul><li>大幅落后的玩家常抽到「极端卡」：一半大好，一半大坏。</li><li>资产低于第一名 30% 时，可以转「逆天改命」转盘（每 3 回合一次）。</li><li>领先太多的玩家抽命运卡时，更容易被针对（树大招风）。</li></ul>
+<h4>💸 没钱怎么办</h4><ul><li>现金不够时自动拆建筑（回收一半）、再抵押地产（回收地价一半）；还不够就破产。</li></ul>`,
+en:`<h4>🎯 Goal</h4><ul><li>Buy US states, upgrade buildings and collect rent. Highest net worth wins. Net worth = cash + land + building investment.</li></ul>
+<h4>🎲 The 7-sided die</h4><ul><li>Roll one die (1–7) each turn. Pass GO to collect $200K.</li><li><b>7 is lucky</b>: roll a 7 and you go again. Three 7s in a row sends you to jail.</li></ul>
+<h4>🏠 Buying and upgrading</h4><ul><li>Land on an unowned property to buy it, or pass. Land on someone else’s and pay rent.</li><li>You upgrade only when you land on your own state: Empty lot → 1 House → 2 Houses → Hotel → Luxury Hotel, 1 or 2 levels at a time.</li><li>Renovation cards and a winning lucky 7 at the casino give free upgrades.</li><li>Own all 3 states of a color: every rent level x2.</li></ul>
+<h4>🏷 Rent inflation</h4><ul><li>Every 5 rounds all rents rise 50% (x1.5 from round 6, x2 from round 11, and so on).</li></ul>
+<h4>🏛 Special tiles</h4><ul><li>🚂✈️ Railroads and airports count together. ⚡💧 Utilities. 🏛 IRS takes 10%. 🏥 Hospital costs $100K. 🎰 Casino: bet Small or Big. 🔒 Jail: roll 6 or 7 to escape.</li></ul>
+<h4>🔥 Comeback rules</h4><ul><li>Players far behind often draw wild cards: half are huge wins, half are disasters.</li><li>Below 30% of the leader’s net worth, you may spin the Comeback Wheel (once every 3 turns).</li><li>A runaway leader draws more punishing Fate cards.</li></ul>
+<h4>💸 Out of cash</h4><ul><li>You auto-sell buildings (half refund), then mortgage land (half price). If that is not enough, you are bankrupt.</li></ul>`};
+function showRules(){deedRender=()=>`<h3>📖 ${T('rules')}</h3><div class="rules">${RULES[LANG]}</div><div class="acts"><button class="cbtn pri" type="button" data-close>${T('close')}</button></div>`;$('#deedSheet').className='sheet wide';$('#deedSheet').innerHTML=deedRender();$('#deed').hidden=false}
+
+/* ================== setup ================== */
+function renderSetup(){
+ const c=CFG;
+ const cyc=(key,label,sub,seat)=>`<div class="cyc"><button class="arrow" type="button" data-opt="${key}" ${seat!=null?`data-seat="${seat}"`:''} data-dir="-1" aria-label="Previous">◀</button><div class="cv"><b>${esc(label)}</b>${sub?`<small>${esc(sub)}</small>`:''}</div><button class="arrow" type="button" data-opt="${key}" ${seat!=null?`data-seat="${seat}"`:''} data-dir="1" aria-label="Next">▶</button></div>`;
+ const cashO=CASH_OPTS.find(o=>o[0]===c.cash),rO=ROUND_OPTS.find(o=>o[0]===c.rounds),mO=MODE_OPTS.find(o=>o[0]===c.mode);
+ const seats=c.seats.slice(0,c.n).map((s,k)=>{const ch=charOf(s.char);return`<div class="seat" style="--pc:${ch.color}">
+  <div class="seatHead"><span>${T('seat',{n:k+1})}</span><span class="sw"></span></div>
+  <div class="charPick"><button class="arrow" type="button" data-cyc="${k}" data-dir="-1" aria-label="Previous">◀</button><div class="bigAv">${avatar(ch.id)}</div><button class="arrow" type="button" data-cyc="${k}" data-dir="1" aria-label="Next">▶</button></div>
+  <div class="cName">${esc(ch.name)}</div><div class="cTitle">${esc(tx(ch.title))}</div><div class="cQuote">${esc(tx(ch.quote))}</div>
+  <input id="seatName${k}" data-name="${k}" maxlength="14" value="${esc(s.name)}" placeholder="${esc(ch.name)}" aria-label="${T('namePh')}">
+  ${cyc('type',T(s.type==='human'?'you':s.type),'',k)}
+ </div>`}).join('');
+ $('#setupCard').innerHTML=`<div class="langRow"><button class="ib" type="button" data-lang>${LANG==='zh'?'English':'中文'}</button></div>
+ <div class="bigLogo"><h1>AMERICAN DREAM<br><em>TYCOON</em></h1><p>美国梦大亨</p></div>
+ <div class="seats">${seats}</div>
+ <div class="opts">
+  <div class="opt"><label>${T('players')}</label>${cyc('n',c.n+(LANG==='zh'?' 人':' players'),'')}</div>
+  <div class="opt"><label>${T('startCash')}</label>${cyc('cash',fmt(c.cash),tx(cashO[1]))}</div>
+  <div class="opt"><label>${T('endMode')}</label>${cyc('mode',T({rounds:'modeRounds',first:'modeFirst',last:'modeLast'}[c.mode]),tx(mO[1]))}</div>
+  ${c.mode==='rounds'?`<div class="opt"><label>${T('rounds')}</label>${cyc('rounds',c.rounds+(LANG==='zh'?' 轮':' rounds'),tx(rO[1]))}</div>`:''}
+ </div>
+ <div class="startRow"><button class="cbtn pri" type="button" data-start>${T('start')} ▶</button></div>
+ <div class="hint">${T('hint')}</div>`;
+}
+$('#setupCard').addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.lang!==undefined){setLang(LANG==='zh'?'en':'zh');return}
+ if(b.dataset.opt){const k=b.dataset.opt,dir=+b.dataset.dir;const step=(list,cur)=>{const i=list.indexOf(cur);return list[(i+dir+list.length)%list.length]};
+  if(k==='n'){CFG.n=step([2,3],CFG.n);fixChars()}
+  else if(k==='cash')CFG.cash=step(CASH_OPTS.map(o=>o[0]),CFG.cash);
+  else if(k==='rounds')CFG.rounds=step(ROUND_OPTS.map(o=>o[0]),CFG.rounds);
+  else if(k==='mode')CFG.mode=step(MODE_OPTS.map(o=>o[0]),CFG.mode);
+  else if(k==='type'){const sk=+b.dataset.seat;CFG.seats[sk].type=step(TYPE_OPTS,CFG.seats[sk].type)}
+  renderSetup();return}
+ if(b.dataset.cyc!==undefined){const k=+b.dataset.cyc,dir=+b.dataset.dir;const used=CFG.seats.filter((s,j)=>j!==k&&j<CFG.n).map(s=>s.char);let idx=CHARS.findIndex(c=>c.id===CFG.seats[k].char);for(let t=0;t<CHARS.length;t++){idx=(idx+dir+CHARS.length)%CHARS.length;if(!used.includes(CHARS[idx].id))break}CFG.seats[k].char=CHARS[idx].id;renderSetup();return}
+ if(b.dataset.start!==undefined){LS.set('adt2-cfg',CFG);startGame(CFG)}
+});
+function fixChars(){const seen=new Set();CFG.seats.forEach((s,k)=>{if(k>=CFG.n)return;if(seen.has(s.char))s.char=CHARS.find(c=>!seen.has(c.id)).id;seen.add(s.char)})}
+$('#setupCard').addEventListener('input',e=>{const k=e.target.dataset.name;if(k!==undefined)CFG.seats[+k].name=e.target.value.slice(0,14)});
+function showSetup(){fixChars();renderSetup();$('#setup').hidden=false}
+function abortGame(){RUN++;pendingResolve=null;closeModal();G.over=true}
+function startGame(cfg){
+ RUN++;pendingResolve=null;closeModal();$('#deed').hidden=true;
+ const c=JSON.parse(JSON.stringify(cfg));
+ G={cfg:c,players:c.seats.slice(0,c.n).map((s,i)=>{const ch=charOf(s.char);return{i,char:ch.id,name:(s.name||'').trim()||ch.name,color:ch.color,ai:s.type==='human'?null:s.type,cash:c.cash,pos:0,inJail:false,jailTries:0,skip:0,jailCard:0,rentFree:0,wheelCD:0,bankrupt:false,stats:{rent:0,casino:0}}}),
+  t:TILES.map(()=>({owner:null,level:0})),cur:0,round:1,fx:{boom:0,tech:0},log:[],over:false,started:true,lastDice:4,outOrder:0};
+ $('#setup').hidden=true;setDie(7,false);
+ const layer=$('#tokens');if(layer)layer.innerHTML='';
+ buildCards();renderAll();log(M('游戏开始！去实现你的美国梦吧。','Game on. Go build your American Dream.'),null,'turn');
+ const run=RUN;setTimeout(()=>{if(run===RUN)turnLoop()},window.__FAST?0:500);
+}
+
+/* ================== language & tools ================== */
+function setLang(l){
+ LANG=l;LS.set('adt-lang',l);document.documentElement.lang=l==='zh'?'zh-CN':'en';
+ document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=T(el.dataset.i18n));
+ $('#btnLang').textContent=l==='zh'?'EN':'中文';
+ renderAll();
+ if(lastAction)renderAction(lastAction.p,lastAction.prompt,lastAction.opts,lastAction.isAI);
+ if(!$('#setup').hidden)renderSetup();
+ if(modalRender&&!$('#modal').hidden)$('#sheet').innerHTML=modalRender.fn();
+ if(deedRender&&!$('#deed').hidden)$('#deedSheet').innerHTML=deedRender();
+}
+$('#btnFull').addEventListener('click',()=>{try{if(document.fullscreenElement)document.exitFullscreen();else{const r=document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();if(r&&r.catch)r.catch(()=>{})}}catch(e){}});
+$('#btnLang').addEventListener('click',()=>setLang(LANG==='zh'?'en':'zh'));
+$('#btnSound').addEventListener('click',()=>{SOUND=!SOUND;LS.set('adt-sound',SOUND);$('#btnSound').textContent=SOUND?'🔊':'🔇';if(SOUND)sfx('card')});
+$('#btnRules').addEventListener('click',showRules);
+$('#btnNew').addEventListener('click',()=>{
+ if(G.started&&!G.over){deedRender=()=>`<h3>${T('newGame')}</h3><p>${T('newConfirm')}</p><div class="acts"><button class="cbtn" type="button" data-confirm="no">${T('no')}</button><button class="cbtn pri" type="button" data-confirm="yes">${T('yes')}</button></div>`;$('#deedSheet').className='sheet';$('#deedSheet').innerHTML=deedRender();$('#deed').hidden=false}
+ else{abortGame();showSetup()}
+});
+
+/* ================== boot ================== */
+buildBoard();
+$('#btnSound').textContent=SOUND?'🔊':'🔇';
+renderAction(null,M('选好角色，点「开始游戏」','Pick your characters and press Start'),[],false);
+setLang(LANG);
+showSetup();
+window.__ADT={get G(){return G},startGame};
+</script>
+
+</body>
+</html>

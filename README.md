@@ -6,8 +6,6 @@
 A cartoon board game that runs in your web browser. Play with 2–3 friends on one screen, or against computer players.
 一款可以直接在浏览器里玩的卡通桌游。2–3 人同屏轮流玩，也可以和电脑对战。
 
-▶️ **Play now / 立即试玩:** https://sf-ryanyan.github.io/american-dream-tycoon/
-
 ![Gameplay 游戏画面](screenshots/gameplay.png)
 
 ---

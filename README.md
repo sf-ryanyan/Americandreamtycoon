@@ -1,114 +1,179 @@
-# 🎲 American Dream Tycoon · 美国梦大亨
+<div align="center">
 
-**Buy US states, build hotels, collect rent, and become the richest tycoon in America.**
-**买下美国各州，盖房盖酒店，收租致富，成为全美最强地产大亨！**
+# 🎲 American Dream Tycoon
+### 美国梦大亨
 
-A cartoon board game that runs in your web browser. Play with 2–3 friends on one screen, or against computer players.
-一款可以直接在浏览器里玩的卡通桌游。2–3 人同屏轮流玩，也可以和电脑对战。
+**Buy the states. Build the hotels. Collect the rent. Live the American Dream.**
+**买下各州，盖起酒店，坐收租金，实现你的美国梦！**
 
-![Gameplay 游戏画面](screenshots/gameplay.png)
+[![Play Now](https://img.shields.io/badge/▶%20PLAY%20NOW-立即开玩-ffc93c?style=for-the-badge&labelColor=2b2140)](https://sf-ryanyan.github.io/Americandreamtycoon/)
+
+`🇨🇳 中文` · `🇺🇸 English` · `👥 2–3 Players` · `🤖 AI Opponents` · `🌐 Play in Browser`
+
+<img src="screenshots/gameplay.png" alt="American Dream Tycoon gameplay" width="100%">
+
+</div>
+
+---
+
+## 📖 Overview · 游戏简介
+
+**American Dream Tycoon** is a cartoon board game about real estate across America. Roll the lucky 7-sided die, travel around a 40-tile board, buy US states, and turn empty lots into luxury hotels. Play with friends on one screen, or take on smart AI opponents. A live US map in the middle of the board shows who owns which state.
+
+**美国梦大亨**是一款以美国房地产为主题的卡通桌游。掷出幸运七面骰，在 40 格棋盘上环游美国，买下各州，把空地一路升级成豪华酒店。可以和朋友同屏对战，也可以挑战电脑。棋盘中间的美国地图实时显示每个州的主人。
 
 ---
 
 ## ✨ Features · 游戏特色
 
-| | English | 中文 |
-|---|---|---|
-| 🗺️ | 40-tile board with 24 US states in 8 color groups, plus a live US map in the middle | 40 格棋盘，24 个州分成 8 个颜色组，中间是实时更新的美国地图 |
-| 🎲 | One 7-sided die. **7 is lucky**: roll a 7 and go again | 一颗 7 面骰子，**7 是幸运数字**，掷出 7 再走一次 |
-| 🏠 | Upgrade: Empty lot → 1 House → 2 Houses → Hotel → Luxury Hotel | 升级：空地 → 一栋房子 → 两栋房子 → 酒店 → 豪华酒店 |
-| 🤠 | 6 themed characters (no special powers, so the game stays fair) | 6 个主题角色（没有技能，保证公平） |
-| 🤖 | AI players: Normal or Hard | 电脑玩家：普通 / 困难 |
-| 🔥 | Comeback rules: wild cards for players far behind, a Comeback Wheel, and tougher cards for the leader | 翻盘机制：落后者极端卡、逆天改命转盘、领先者"树大招风" |
-| 🎰 | Vegas casino, jail, hospital, IRS, railroads, airports and utilities | 拉斯维加斯赌场、监狱、医院、国税局、铁路、机场、公共事业 |
-| 🌐 | Chinese / English with one click | 中英文一键切换 |
-| 📦 | One HTML file. No install, no server, no login | 只有一个 HTML 文件，不用安装、不用服务器、不用登录 |
-
-## 🧑‍🤝‍🧑 Characters · 角色
-
-| Character 角色 | Who 身份 |
-|---|---|
-| Tex | Texas Cowboy 德州牛仔 |
-| Sam | Silicon Valley Geek 硅谷极客 |
-| Stella | Hollywood Star 好莱坞明星 |
-| Mr. Gold | Wall Street Mogul 华尔街大亨 |
-| Kai | Hawaiian Surfer 夏威夷冲浪手 |
-| Rosa | Star Realtor 金牌地产经纪 |
-
-## ⚙️ Game Setup · 开局设置
-
-![Setup 开局设置](screenshots/setup.png)
-
-| Option 选项 | Choices 可选 |
-|---|---|
-| Players 玩家人数 | 2 or 3 |
-| Each seat 每个座位 | Human 真人 / AI Normal 电脑·普通 / AI Hard 电脑·困难 |
-| Starting cash 起始资金 | $800K · $1.5M · $3M · $5M |
-| Game ends 结束方式 | Round limit 固定回合 · First bankruptcy 第一人破产 · Last one standing 玩到最后一人 |
-| Rounds 回合数 | 15 · 25 · 40 · 60 |
-
-## 📖 How to Play · 玩法说明
-
-**Each turn · 每回合**
-1. Roll the die and move. 掷骰子前进。
-2. Pass GO to collect **$200K**. 经过起点领工资 **$200K**。
-3. Unowned property: buy it or pass. 无人的地：可以买，也可以不买。
-4. Someone else's property: pay rent. 别人的地：付租金。
-5. Your own state: pay to upgrade 1 or 2 levels. 自己的州：可以付费升 1 级或 2 级。
-
-**Key rules · 重要规则**
-- **Color set:** own all 3 states of a color and every rent level is ×2. 集齐同色 3 个州，所有租金 ×2。
-- **Rent inflation:** every 5 rounds, all rents go up 50%. 每 5 轮全场租金 +50%。
-- **Jail:** pay $100K, use a jail card, or roll 6 or 7 to get out. 监狱：付 $100K、用出狱卡，或掷出 6 或 7 出狱。
-- **Casino:** bet Small (1–3) or Big (5–7). A 4 means the house wins. 赌场：押小（1–3）或押大（5–7），掷出 4 庄家赢。
-- **Comeback Wheel:** below 30% of the leader's net worth, you may spin it (take 30% of the leader's cash, +$800K, nothing, or lose half your cash). 资产低于第一名 30% 时可转盘：拿走第一名 30% 现金 / +$800K / 什么都没有 / 失去一半现金。
-- **Out of cash:** buildings are sold back at half price, then land is mortgaged. If that is still not enough, you are bankrupt. 没钱时自动半价拆建筑、再抵押地产，还不够就破产。
-- **Net worth** = cash + land price + building investment. 总资产 = 现金 + 地价 + 建筑投入。
-
-Full rules are inside the game (**规则 / Rules** button). 完整规则在游戏里的「规则」按钮。
-
-**Tips · 小提示**
-- Best on a computer or tablet in landscape. 推荐电脑或平板横屏玩。
-- Tap any tile or state on the map to see its deed. 点击格子或地图上的州可以查看地契。
-- Press **Space** for the main button. 按**空格键** = 主按钮。
-
-## 🚀 Run It Yourself · 自己部署
-
-**Option 1: Just open it · 直接打开**
-Download `index.html` and double-click it. It opens in your browser.
-下载 `index.html`，双击就能在浏览器里玩。
-
-**Option 2: GitHub Pages (free hosting) · 免费上线**
-1. Upload `index.html`, `README.md` and the `screenshots` folder to a GitHub repo.
-   把 `index.html`、`README.md` 和 `screenshots` 文件夹上传到 GitHub 仓库。
-2. Go to **Settings → Pages**.
-   打开 **Settings → Pages**。
-3. Under **Branch**, pick `main` and `/ (root)`, then click **Save**.
-   在 **Branch** 选 `main` 和 `/ (root)`，点 **Save**。
-4. Wait 1–2 minutes. Your game is live at `https://<your-username>.github.io/<repo-name>/`.
-   等 1–2 分钟，游戏就上线了。
-
-## 🛠️ Tech · 技术说明
-
-- Plain HTML, CSS and JavaScript in one file. No frameworks, no build step.
-  纯 HTML + CSS + JavaScript，单个文件，不需要框架或打包。
-- All characters, landmarks and buildings are hand-drawn SVG, so they look the same on every device.
-  角色、地标和建筑全部是 SVG 矢量图，任何设备显示都一样清晰。
-- Sound effects are made in the browser with the Web Audio API (no audio files).
-  音效由浏览器实时生成，没有音频文件。
-- Settings (language, sound, last setup) are saved in your browser's local storage.
-  语言、声音和上次的设置会保存在你的浏览器里。
-
-## 🙏 Credits · 致谢
-
-- US state shapes: [us-atlas](https://github.com/topojson/us-atlas) (ISC License), based on U.S. Census Bureau cartographic boundary files.
-  美国州界数据来自 us-atlas，源自美国人口普查局。
-- Fonts: [Lilita One](https://fonts.google.com/specimen/Lilita+One) and [Fredoka](https://fonts.google.com/specimen/Fredoka) from Google Fonts (SIL Open Font License).
-  字体来自 Google Fonts。
-- Inspired by classic property-trading board games. This is an original game and is not affiliated with any board game brand.
-  灵感来自经典地产桌游。本游戏为原创作品，与任何桌游品牌无关。
+| | Feature | 特色 |
+|:---:|---|---|
+| 🗺️ | **24 US states** in 8 color groups on a 40-tile board | 40 格棋盘，**24 个州**，8 个颜色组 |
+| 🎲 | **One 7-sided die**: roll a 7 and you go again | **七面骰子**，掷出 7 再走一次 |
+| 🏰 | **5 building levels**: from empty lot to Luxury Hotel | **5 级建筑**，从空地到豪华酒店 |
+| 🤠 | **6 themed characters**, looks and lines only, so the game stays fair | **6 个主题角色**，只有外观和台词，保证公平 |
+| 🤖 | **AI opponents** at Normal or Hard level | **电脑对手**，普通 / 困难两档 |
+| 🔥 | **Comeback system**: anyone can turn the game around | **翻盘机制**，落后也有机会逆袭 |
+| 🎰 | **Las Vegas Casino**: risk it all on one roll | **拉斯维加斯赌场**，一把定输赢 |
+| 🌀 | **Live map events**: hurricanes, wildfires, housing booms | **地图实时事件**：飓风、山火、房市暴涨 |
+| 🌐 | **Chinese / English** switch with one click | **中英文**一键切换 |
 
 ---
 
-Created by **Ryan Yan** · sfryanyan@gmail.com
-© 2026 Ryan Yan. All rights reserved.
+## 🎭 Characters · 角色
+
+| Character | Who | 身份 | Catchphrase · 口头禅 |
+|:---:|---|---|---|
+| 🤠 **Tex** | Texas Cowboy | 德州牛仔 | "Yeehaw! I'll take the whole ranch!" |
+| 💻 **Sam** | Silicon Valley Geek | 硅谷极客 | "The data says: buy." |
+| 🎬 **Stella** | Hollywood Star | 好莱坞明星 | "This mansion is perfect for my show." |
+| 💼 **Mr. Gold** | Wall Street Mogul | 华尔街大亨 | "Cash is king. I'll take it all." |
+| 🏄 **Kai** | Hawaiian Surfer | 夏威夷冲浪手 | "Aloha! Ocean view, I'm in!" |
+| 🏡 **Rosa** | Star Realtor | 金牌地产经纪 | "Location, location, location!" |
+
+---
+
+## ⚙️ Game Setup · 开局设置
+
+<div align="center">
+<img src="screenshots/setup.png" alt="Game setup screen" width="85%">
+</div>
+
+| Option · 选项 | Choices · 可选 |
+|---|---|
+| 👥 Players · 玩家人数 | 2 or 3 · 2 人或 3 人 |
+| 🎮 Each seat · 每个座位 | Human · AI Normal · AI Hard<br>真人 · 电脑普通 · 电脑困难 |
+| 💰 Starting cash · 起始资金 | $800K Tight · $1.5M Standard · $3M Rich · $5M Big Spender<br>紧张 · 标准 · 富裕 · 土豪 |
+| 🏁 Game ends · 结束方式 | Round limit · First bankruptcy · Last one standing<br>固定回合 · 第一人破产 · 玩到最后一人 |
+| 🔁 Rounds · 回合数 | 15 · 25 · 40 · 60 (about 10–40 minutes · 约 10–40 分钟) |
+
+---
+
+## 🎮 How to Play · 玩法
+
+1. 🎲 **Roll the die and move.** Pass GO to collect **$200K**.
+   **掷骰子前进**，经过起点领工资 **$200K**。
+2. 🏠 **Land on an unowned property.** Buy it, or pass.
+   **停在无人的地**，可以买，也可以不买。
+3. 💸 **Land on someone else's property.** Pay them rent.
+   **停在别人的地**，要付租金。
+4. 🔨 **Land on your own state.** Pay to upgrade it by 1 or 2 levels.
+   **停在自己的州**，可以付费升 1 级或 2 级。
+5. 🏆 **Win.** Have the highest net worth when the game ends.
+   **获胜**：游戏结束时总资产最高的人赢。
+
+> 💡 **Net worth** = cash + land price + money spent on buildings
+> 💡 **总资产** = 现金 + 地价 + 建筑投入
+
+---
+
+## 📜 Rules · 规则
+
+### 🏗️ Buildings · 建筑升级
+
+| Level | Building | 建筑 |
+|:---:|---|---|
+| 0 | 🟫 Empty lot | 空地 |
+| 1 | 🏠 1 House | 一栋房子 |
+| 2 | 🏠🏠 2 Houses | 两栋房子 |
+| 3 | 🏨 Hotel | 酒店 |
+| 4 | 🏰 Luxury Hotel | 豪华酒店 |
+
+- You can only upgrade when you **land on your own state**. Passing GO gives no free upgrade.
+  只有**停到自己的州**才能升级，经过起点不送升级。
+- Some cards, and a winning lucky 7 at the casino, give **free upgrades**.
+  部分卡片，以及在赌场掷出幸运 7 赢钱，可以**免费升级**。
+- 🌈 **Color set:** own all 3 states of one color and **every rent level doubles**.
+  **集齐同色 3 个州，所有等级租金翻倍。**
+- 🏷️ **Rent inflation:** every 5 rounds, **all rents rise 50%**.
+  **租金通胀**：每 5 轮，**全场租金 +50%**。
+
+### 🎲 The Lucky 7 · 幸运 7
+
+- Roll a **7** and you **roll again**. 掷出 **7** 可以**再走一次**。
+- Roll three 7s in a row and you go to **jail**. 连续三次 7 会被抓去**坐牢**。
+
+### 🏛️ Special Tiles · 功能格
+
+| Tile · 格子 | What happens · 效果 |
+|---|---|
+| 🏁 **GO · 起点** | Collect $200K each time you pass. 每次经过领 $200K。 |
+| 🔒 **Jail · 监狱** | Pay $100K, use a jail card, or roll a 6 or 7 to get out. 付 $100K、用出狱卡，或掷出 6 或 7 出狱。 |
+| 🎰 **Casino · 赌场** | Bet $100K, $300K or all-in on Small (1–3) or Big (5–7). A 4 means the house wins. 押小（1–3）或押大（5–7），掷出 4 庄家赢。 |
+| 🏥 **Hospital · 医院** | Pay a $100K medical bill. 支付医疗费 $100K。 |
+| 🏛️ **IRS · 国税局** | Pay 10% of your net worth. 缴纳总资产的 10%。 |
+| 🚂✈️ **Rail & Airports · 铁路和机场** | Rent grows with how many you own: $50K → $400K. 拥有越多，租金越高：$50K → $400K。 |
+| ⚡💧 **Utilities · 公共事业** | Rent = die roll × $20K, or × $50K if you own both. 租金 = 点数 × $20K，两家都有 × $50K。 |
+| ❓ **Chance · 机会** | Personal luck: lottery wins, deed swaps, takeovers, free upgrades. 个人运气：中彩票、互换地契、恶意收购、免费升级。 |
+| 🎴 **Fate · 命运** | Events for everyone: hurricanes, wildfires, booms, crashes. 全场事件：飓风、山火、房市暴涨或崩盘。 |
+
+### 🔥 Comeback System · 翻盘机制
+
+- 🎲 **Underdog wild cards:** a player far behind often draws extreme cards. Half are huge wins, half are disasters.
+  **落后者极端卡**：大幅落后的玩家常抽到极端卡，一半大好，一半大坏。
+- 🎡 **Comeback Wheel:** below 30% of the leader's net worth, you may spin the wheel, once every 3 turns. Prizes: take 30% of the leader's cash, +$800K, nothing, or lose half your cash.
+  **逆天改命转盘**：资产低于第一名的 30% 时可以转，每 3 回合一次。结果可能是拿走第一名 30% 的现金、+$800K、什么都没有，或者失去一半现金。
+- 🌳 **Tall trees catch the wind:** a runaway leader draws tougher Fate cards.
+  **树大招风**：领先太多的玩家更容易抽到针对自己的命运卡。
+
+### 💀 Bankruptcy · 破产
+
+- When you can't pay, buildings are sold back at half price first, then land is mortgaged.
+  现金不够时，先半价拆掉建筑，再抵押地产。
+- If that is still not enough, you are **bankrupt** and all your property returns to the bank.
+  如果还是不够就**破产**，地产全部归还银行。
+
+---
+
+## 🙏 Acknowledgements · 致谢
+
+- 🗺️ US state outlines: [us-atlas](https://github.com/topojson/us-atlas), based on U.S. Census Bureau boundary data
+  美国州界数据：us-atlas，源自美国人口普查局
+- 🔤 Fonts: [Lilita One](https://fonts.google.com/specimen/Lilita+One) and [Fredoka](https://fonts.google.com/specimen/Fredoka) from Google Fonts
+  字体：Google Fonts
+- 🎲 Inspired by classic property-trading board games
+  灵感来自经典地产桌游
+
+---
+
+## ⚠️ Disclaimer · 免责声明
+
+American Dream Tycoon is an original fan-made game, created for fun and learning. It is not affiliated with, endorsed by, or connected to any board game brand or company. All money in the game is play money. The casino is part of the game only and has no link to real gambling. Characters are fictional.
+
+美国梦大亨是一款原创游戏，仅供娱乐和学习。本游戏与任何桌游品牌或公司无关，也未获得其授权或背书。游戏中的金钱均为虚拟货币，赌场仅为游戏玩法，与真实赌博无关。所有角色均为虚构。
+
+---
+
+## 👋 About Me · 关于我
+
+Hi, I'm **Ryan Yan**, a data analyst. I enjoy turning ideas into fun, interactive web projects.
+
+你好，我是 **Ryan Yan**，一名数据分析师，喜欢把创意做成有趣的互动网页项目。
+
+<div align="center">
+
+**🎲 Ready to build your empire? · 准备好建立你的地产帝国了吗？**
+
+[![Play Now](https://img.shields.io/badge/▶%20START%20PLAYING-开始游戏-ffc93c?style=for-the-badge&labelColor=2b2140)](https://sf-ryanyan.github.io/Americandreamtycoon/)
+
+</div>
